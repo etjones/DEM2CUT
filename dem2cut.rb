@@ -2,6 +2,10 @@
 require 'rubygems'
 require 'rasem'
 
+def ppm_2_arr
+   #TODO: write ppm_2_arr 
+end
+
 class LatLong
     attr_reader :lat, :long
     def initialize( lat, long)
@@ -40,6 +44,16 @@ class LatLongRegion
         min = LatLong.new( lat - lat_span/2, long - long_span/2)
         max = LatLong.new( lat + lat_span/2, long + long_span/2)
         LatLongRegion.new( min, max)
+    end
+    def LatLongRegion.region_from_ASTER_filename( aster_file)
+       found_groups = /ASTGTM2_(\w)(\d+)(\w)(\d+)_dem/.match( aster_file) 
+       east_west, long, north_south, lat = found_groups.captures
+       long = long.to_i * (east_west == "E" ? 1 : -1)
+       lat = lat.to_i * (north_south == "N" ? 1 : -1)
+       
+       min = LatLong.new( lat, long)
+       max = LatLong.new( lat + 1, long + 1)
+       LatLongRegion.new( min, max)
     end
     def contains_point?( lat_long)
         ((min_lat..max_lat).include?(lat_long.lat) and
@@ -152,15 +166,18 @@ class DemData
         x = scale( x, x_ind_1, x_ind_2, 0, 1)
         y = scale( y, y_ind_1, y_ind_2, 0, 1)
         
-
         points = [ [@data[y_ind_1][x_ind_1], @data[y_ind_1][x_ind_2]],
                    [@data[y_ind_2][x_ind_1], @data[y_ind_2][x_ind_2]]                  
                    ]
-
         
-        # NOTE: y, x or x, y here?
+        # y, x, since points is indexed by y first
         elev = bilinear_interpolation(  y, x, points)
         elev
+    end
+    def DemData.data_arr_from_ASTER_ppm( ppm_path)
+         region = LatLongRegion.region_from_ASTER_filename( ppm_path)
+         
+         DemData.new( region, data)
     end
 end
 def scale( val, src_min, src_max, dest_min, dest_max)
@@ -203,11 +220,11 @@ class DemPaperCut
     attr_reader :all_frame_width, :frame_width, :frame_elev
     attr_reader :x_samples
     attr_reader :dem_data
-    A4_W, A4_H = 216 * 2, 279 * 2
+    A4_W, A4_H = 216, 279
     def initialize( dem_data,orientation=:north, 
         cut_width=133, cut_height=133,
         num_sections=25, x_samples=100,
-        bot_margin=8.5, top_margin=30)
+        bot_margin=8.5, top_margin=18.5)
         """ Using a DemData instance, create a pattern of paper cuts & folds
         sufficient to represent DemData's region
 
@@ -438,27 +455,42 @@ end
 
 if __FILE__ == $0
     
-    steens_link = "http://maps.google.com/?ll=42.705903,-118.639984&spn=0.35,0.35&t=h&z=12&vpsrc=6"
-    steens_link = "http://maps.google.com/?ll=0.5,0.5&spn=1.0,1.0&t=h&z=12&vpsrc=6"
-    mt_hood_link = "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.081885,0.11982&hnear=3384+SE+Clinton+St,+Portland,+Oregon+97202&t=h&z=13&vpsrc=6"
-    # steens_link = "http://maps.google.com/?ll=42.705903,-118.639984&spn=\
-    # 0.171304,0.363579&hnear=3384+SE+Clinton+St,+Portland,+Oregon+97202&t=h&z=12&vpsrc=6"
+    steens_link = "http://maps.google.com/?ll=42.705903,-118.639984&spn=0.171304,0.363579&t=h&z=12&vpsrc=6"
     steens_llr = LatLongRegion.region_from_google_maps_link( steens_link)
+
+    mt_hood_link = "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.081885,0.11982&hnear=3384+SE+Clinton+St,+Portland,+Oregon+97202&t=h&z=13&vpsrc=6"
+    mt_hood_data_file = "dems/ASTGTM2_N45W122_dem.ppm"
+    hood_big_region = LatLongRegion.region_from_ASTER_filename( mt_hood_data_file)
+    hood_small_region = LatLongRegion.region_from_google_maps_link( mt_hood_link)
+
+    # hood_data = dem_from_ppm
     dummy_arr = [[50, 25], 
                  [25, 50]]
                  
-    # dummy_arr = [   [0, 0, 0, 0, 0],
-    #                 [0, 0, 5, 0, 0],
-    #                 [0, 5, -15, 5, 0],
-    #                 [0, 0, 5, 0, 0],
-    #                 [0, 0, 0, 0, 0],
-    #     ]
+    dummy_arr = [   [   0,   0,   5,   0,   0]*2,
+                    [   0,   0,  10,   0,   0]*2,
+                    [   0,   5,  15,   5,   0]*2,
+                    [   0,   0,  10,   0,   0]*2,
+                    [   0,   0,   5,   0,   0]*2,
+        ]
+        
+    # A set of cosine waves
+    dummy_arr = []
+    num_slices = 16
+    num_points = 32
+    num_slices.times { |n|
+        dummy_arr[n] = []
+        num_points.times { |i|  
+            a = (i + n*2).to_f/num_points * 4 * Math::PI
+            dummy_arr[n] << Math.cos( a)
+        }
+    }
     
     # dummy_arr = [[ 0, 1, 0, 2], 
     #              [ 0, 1, 0, 2]]
     dummy_data = DemData.new( steens_llr, dummy_arr)
     # testing
-    dpc = DemPaperCut.new( dummy_data, :north, 200, 200) #, dummy_arr.length*3 , dummy_arr[0].length*2)
+    dpc = DemPaperCut.new( dummy_data, :north, 133, 133, num_slices, num_points) #, dummy_arr.length*3 , dummy_arr[0].length*2)
     # dpc.write_frame_svg( "/Users/jonese/Desktop/test_frame.svg")
     dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg")
 end
