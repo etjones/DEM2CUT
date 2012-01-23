@@ -1,0 +1,16 @@
+TODO:
+
+-- open & read DEM data
+-- all lat_long regions are currently warped into squares.  Better would
+    be to take into account the aspect ratio of the region being graphed.
+-- use cached DEM data so we don't have to download more.
+-- TESTING.
+-- West & east orientations don't work yet.
+
+
+Destination:
+- live-updating SVG for use on a website
+- interactive sliders
+- google maps interface for choosing regions
+- overlay for regions with available data
+- some means of acquiring more data - api for ASTER data?
