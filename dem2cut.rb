@@ -2,23 +2,66 @@
 require 'rubygems'
 require 'rasem'
 
-def pgm_2_arr( pgm_path)
-   pgm_header_re = /P(\d)\s+.*?\n(\d+)\s+(\d+)\n(\d+)\n/
+def read_pgm_header( pgm_path)
+   pgm_header_re = /P(\d)\n(\d+)\s+(\d+)\n(\d+)\n/
    header = ""
    data = []
+   lines_found = 0
+   filetype, width, height, range, header_bytes = [nil] *5
    open( pgm_path, "r") do |f|
-        # get as much of the header as we need.
-        # Since one line in the pgms I have is a comment
-        # it's possible that others who created pgms
-        # might need less or more lines
-        # (lines beginning with '#' are comments)
-        # A better solution would be to read until three lines not beginning
-        # with '#' had been encountered. 
-        4.times { |n|  header << f.readline}
+        while lines_found < 3 do
+            l = f.readline
+            # ignore comment lines
+            next if l[0...1] == "#"
+            header << l
+            lines_found += 1
+        end
         match = pgm_header_re.match(header)
         # NOTE: should raise exception if the header wasn't recognized?
         if not match; return false; end
         filetype, width, height, range = match.captures.map { |e| e.to_i }
+        header_bytes = f.pos
+    end
+    return [filetype, width, height, range, header_bytes]
+end
+def pgm_header( width, height, range=255, filetype=5)
+    header = %Q{P#{filetype}\n#{width} #{height}\n#{range}\n}
+end
+def pgm_2_8bps( pgm_path, max_elevation=8500)
+    filetype, width, height, range, header_bytes = read_pgm_header( pgm_path)
+    data = pgm_2_arr( pgm_path, max_elevation)    
+    
+    # We're scaling all values in data by the same factor. So
+    # rather than recalculate this factor thousands of times (with associated
+    # expensive divisions), just do it once
+    scale_factor = 1.0/(max_elevation/ 256.0)
+    
+    height.times { |y| 
+        width.times { |x|  
+            d = data[y][x]
+            # We're scaling to max_elevation, but it wouldn't be unreasonable
+            # to scale to the actual max value in the file
+            # data[y][x] = scale( d, 0, max_elevation, 0, 255).to_i
+            data[y][x] = (data[y][x] * scale_factor).to_i
+        } 
+    }
+    out = pgm_header( width, height, 255, 5)
+    height.times { |y|  out << data[y].pack("C*")}
+    
+    
+    dirname, basename = File.split( File.expand_path(pgm_path))
+    file_8bps = dirname + "/" + File.basename(basename, ".*") + "_8bps.pgm"
+    open( file_8bps, "w"){|f| f.write(out)}
+end
+def pgm_2_arr( pgm_path, max_elevation=8500)
+   data = []
+
+   filetype, width, height, range, header_bytes = read_pgm_header( pgm_path)
+   return false unless filetype == 5
+   open( pgm_path, "r") do |f|
+        # we've already read the header. skip it.
+        f.read( header_bytes)
+
         if range > 255
             token_key = 'n*' 
             bytes_per_token = 2
@@ -28,6 +71,8 @@ def pgm_2_arr( pgm_path)
         end
         height.times { |y|  
             data[y] = f.read( bytes_per_token*width).unpack( token_key)
+            # Set any data higher than max_elevation to zero
+            data[y].map!{|e| e > max_elevation ? 0 : e}
         }
    end
    
@@ -43,6 +88,9 @@ class LatLong
     end
     def is_in_region( region)
         region.includes_point?( self)
+    end
+    def to_s
+        "(%.2f, %.2f)"%[lat, long]
     end
 end
 class LatLongRegion
@@ -65,8 +113,12 @@ class LatLongRegion
         @min_lat_long = LatLong.new(@min_lat, @min_long)
         @max_lat_long = LatLong.new(@max_lat, @max_long)
     end
+    def to_s
+        "#{min_lat_long} to #{max_lat_long}"
+    end
     def LatLongRegion.region_from_google_maps_link( gm_link)
-        # found_groups = /ll=(?<lat>-?\d+\.\d+),(?<long>-?\d+\.\d+)&spn=(?<lat_span>\d+\.\d+),(?<long_span>\d+\.\d+)/.match( gm_link)
+        # Parse region from links like:
+        # "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.081885,0.11982&z=13&vpsrc=6"
         found_groups = /ll=(-?\d+\.\d+),(-?\d+\.\d+)&spn=(\d+\.\d+),(\d+\.\d+)/.match( gm_link)
         # TODO: error checking
         lat, long, lat_span, long_span = found_groups.captures.map { |e| e.to_f }
@@ -75,21 +127,23 @@ class LatLongRegion
         LatLongRegion.new( min, max)
     end
     def LatLongRegion.region_from_ASTER_filename( aster_file)
-       found_groups = /ASTGTM2_(\w)(\d+)(\w)(\d+)_dem/.match( aster_file) 
-       east_west, long, north_south, lat = found_groups.captures
-       long = long.to_i * (east_west == "E" ? 1 : -1)
-       lat = lat.to_i * (north_south == "N" ? 1 : -1)
-       
-       min = LatLong.new( lat, long)
-       max = LatLong.new( lat + 1, long + 1)
-       LatLongRegion.new( min, max)
+        # parse filenames like: ASTGTM2_N45W122_dem for lat/long data.
+        # these files are all one degree wide & high
+        found_groups = /ASTGTM2_(\w)(\d+)(\w)(\d+)_dem/.match( aster_file) 
+        north_south, lat, east_west, long = found_groups.captures
+        long = long.to_i * (east_west == "E" ? 1 : -1)
+        lat = lat.to_i * (north_south == "N" ? 1 : -1)
+        
+        min = LatLong.new( lat, long)
+        max = LatLong.new( lat + 1, long + 1)
+        LatLongRegion.new( min, max)
     end
     def contains_point?( lat_long)
         ((min_lat..max_lat).include?(lat_long.lat) and
         (min_long..max_long).include?(lat_long.long))
     end
     def four_corners
-        [min_lat_long, LatLong.new( @min_lat, @max_long), LatLong.new(@max_lat, @min_long), max_long]
+        [min_lat_long, LatLong.new( @min_lat, @max_long), LatLong.new(@max_lat, @min_long), max_lat_long]
     end
     def contains_region?( region)
        region.four_corners.all? { |e| self.contains_point? e } 
@@ -120,12 +174,10 @@ class DemData
         # TODO raise error if not [:north, :south, :east, :west].include? orientation
         
         x1, x2, y1, y2, x_samples, y_count = case orientation
-           # latitude increases south to north, but our drawing
-           # sections increase from top to bottom; invert lat values
            when :north
-               [llr.min_long, llr.max_long, llr.max_lat, llr.min_lat, horiz_points, vert_points]
+               [llr.min_long, llr.max_long, llr.min_lat, llr.max_lat, horiz_points, vert_points]
            when :south 
-               [llr.max_long, llr.min_long, llr.min_lat, llr.max_lat, horiz_points, vert_points]
+               [llr.max_long, llr.min_long, llr.max_lat, llr.min_lat, horiz_points, vert_points]
            when :east
                [llr.min_lat, llr.max_lat, llr.max_long, llr.min_long, vert_points, horiz_points]
            when :west
@@ -133,16 +185,14 @@ class DemData
            else puts "orientation: #{orientation} but should be in " + [:north, :south, :east, :west].to_s
         end
 
-        # ETJ DEBUG
-        puts "x1 = #{x1}"
-        puts "x2 = #{x2}"
-        puts "y1 = #{y1}"
-        puts "y2 = #{y2}"
-        puts "x_samples = #{x_samples}"
-        puts "y_count = #{y_count}"
-
-
-        # END DEBUG
+        # # ETJ DEBUG
+        # puts "x1 = #{x1}"
+        # puts "x2 = #{x2}"
+        # puts "y1 = #{y1}"
+        # puts "y2 = #{y2}"
+        # puts "x_samples = #{x_samples}"
+        # puts "y_count = #{y_count}"
+        # # END DEBUG
 
         x_gap = (x2 - x1).to_f / (x_samples - 1)
         y_gap = (y2 - y1).to_f / (y_count - 1)
@@ -156,18 +206,17 @@ class DemData
         
         sections = []
         vert_points.times { |i| 
-            y = y1 + y_gap*i
+            lat = y1 + y_gap*i
             sections[i] = []
             horiz_points.times { |j| 
-                x = x1 + x_gap*j
-                # lat_long = invert_lat_long ? [x, y] : [y, x] 
-                lat_long = invert_lat_long ?  [y, x]:  [x, y]
+                long = x1 + x_gap*j
+                lat_long = LatLong.new( *(invert_lat_long ? [long, lat] : [lat, long])) 
                 # ETJ DEBUG
                 if i%10 == 0 and j %10 == 0
-                    puts "(#{j}, #{i}) at lat/long: #{lat_long[0]}, #{lat_long[1]}"
+                    puts "(#{j}, #{i}) at lat/long: #{lat_long}"
                 end
                 # END DEBUG
-                sections[i] << elevation_at_location( LatLong.new(*lat_long))
+                sections[i] << elevation_at_location( lat_long)
             }
         }
         
@@ -179,94 +228,77 @@ class DemData
         # closest to lat_long
         # then interpolate between them to find the elevation
         
-        # ETJ DEBUG
-        # puts "@data.length = #{@data.length}"
-        # puts "@data[0] = #{@data[0]}"
-        # 10.times { |n| puts data[n] }
-
-        # END DEBUG
+        x, y = lat_long.long, lat_long.lat
         
-        # TODO: raise argument error if not region.contains_point? lat_long
-        
-        # FIXME: x_ind_1 continues to be incorrect, breaking things. Why -ETJ 23 Jan 2012
         min_x_ind = 0
         min_y_ind = 0
         max_y_ind = @data.length - 1
-        max_x_ind = @data[0].length - 1
+        max_x_ind = @data[0].length - 1        
         
-        # # ETJ DEBUG
-        puts "lat_long.lat = #{lat_long.lat}"
-        puts "region.min_lat = #{region.min_lat}"
-        puts "region.max_lat = #{region.max_lat}"
-        # # END DEBUG
-        
-        # linear interpolation between four closest data points
-        y = scale( lat_long.lat, region.min_lat, region.max_lat, 0, max_y_ind)
-        y_ind_1 = y.to_i
-        # Don't go off the edge of the array
-        if y_ind_1 == max_y_ind
-            y_ind_1 -= 1; 
-        end
-        y_ind_2 = y_ind_1 + 1 
-        
-        
-        x = scale( lat_long.long, region.min_long, region.max_long, 0, max_x_ind)
-        x_ind_1 = x.to_i # => 325510
-        # Don't go off the edge of the array
-        if x_ind_1 == max_x_ind
-            x_ind_1 -= 1; 
-        end
+        # Find where in the data we want to look
+        y_fractional_index = scale( y, region.min_lat,  region.max_lat,  min_y_ind, max_y_ind)
+        x_fractional_index = scale( x, region.min_long, region.max_long, min_x_ind, max_x_ind)
+        y_ind_1 = y_fractional_index.to_i
+        x_ind_1 = x_fractional_index.to_i
+        # don't go off the edges of the array
+        if y_ind_1 == max_y_ind; y_ind_1 -= 1; end
+        if x_ind_1 == max_x_ind; x_ind_1 -= 1; end
         x_ind_2 = x_ind_1 + 1
+        y_ind_2 = y_ind_1 + 1
         
-        # ETJ DEBUG
-        puts "x_ind_1, y_ind_1 = #{x_ind_1}, #{y_ind_1}"
-        # END DEBUG
-        
-        # normalize x & y so we know which data points to weight best
-        x = scale( x, x_ind_1, x_ind_2, 0, 1)
-        y = scale( y, y_ind_1, y_ind_2, 0, 1)
-        
-        points = [ [@data[y_ind_1][x_ind_1], @data[y_ind_1][x_ind_2]],
-                   [@data[y_ind_2][x_ind_1], @data[y_ind_2][x_ind_2]]                  
-                   ]
-        
-        # y, x, since points is indexed by y first
-        elev = bilinear_interpolation(  y, x, points)
-        elev
+        two_by_two = [  [@data[y_ind_1][x_ind_1], @data[y_ind_1][x_ind_2]],
+                        [@data[y_ind_2][x_ind_1], @data[y_ind_2][x_ind_2]]                  
+                     ]
+        # elev = bilinear_interpolation( x, y, region.min_long, region.min_lat,
+        #             region.max_long, region.max_lat, two_by_two)
+        elev = bilinear_interpolation( x_fractional_index, y_fractional_index,
+                    x_ind_1, y_ind_1, x_ind_2, y_ind_2, two_by_two)
+        return elev
     end
-    def DemData.from_ASTER_pgm( pgm_path)
+    def DemData.from_ASTER_pgm( pgm_path, max_elevation = 8500)
          region = LatLongRegion.region_from_ASTER_filename( pgm_path)
-         data = pgm_2_arr( pgm_path)
+         data = pgm_2_arr( pgm_path, max_elevation)
          # TODO: error checking
          DemData.new( region, data)
     end
 end
 def scale( val, src_min, src_max, dest_min, dest_max)
     retval = (val - src_min).to_f/(src_max - src_min) * (dest_max - dest_min) + dest_min
-    # ETJ DEBUG
-    puts "val = #{val}"
-    puts "src_min = #{src_min}"
-    puts "src_max = #{src_max}"
-    puts "dest_min = #{dest_min}"
-    puts "dest_max = #{dest_max}"
-    puts "retval = #{retval}"
-
-
-    # END DEBUG
+    # # ETJ DEBUG
+    # puts "val = #{val}"
+    # puts "src_min = #{src_min}"
+    # puts "src_max = #{src_max}"
+    # puts "dest_min = #{dest_min}"
+    # puts "dest_max = #{dest_max}"
+    # puts "retval = #{retval}"
+    # # END DEBUG
     retval
 end
-def bilinear_interpolation( x, y, two_by_two)
-    # x & y are assumed to be normalize to [0, 1]
+def bilinear_interpolation( x, y, x1, y1, x2, y2, two_by_two)
     # Code adapted from http://en.wikipedia.org/wiki/Bilinear_interpolation,
-    # retrieved 22 Jan 2012
-    d = two_by_two
-    b1 = d[0][0]
-    b2 = d[1][0] - d[0][0]
-    b3 = d[0][1] - d[0][0]
-    b4 = d[0][0] - d[1][0] - d[0][1] + d[1][1]
-
-    b1 + b2*x + b3*y + b4 *x *y
+    # retrieved 22 Jan 2012    
+    a = two_by_two[0][0] # data at: [y1, x1]
+    b = two_by_two[0][1] # data at: [y1, x2]
+    c = two_by_two[1][0] # data at: [y2, x1]
+    d = two_by_two[1][1] # data at: [y2, x2]
     
+    recip = 1.0/((x2 -x1)*(y2-y1))
+
+    interp = (a * recip * (x2 -  x) * (y2-y) + 
+              b * recip * ( x - x1) * (y2-y) +
+              c * recip * (x2 -  x) * (y-y1) +
+              d * recip * ( x - x1) * (y-y1)
+             )
+    # # ETJ DEBUG
+    # puts "x1,y1:    #{x1}\t#{y1}"
+    # puts "x2,y2:    #{x2}\t#{y2}"
+    # puts "x,y:      #{x}\t#{y}"    
+    # 
+    # puts "a,b:      #{a}\t#{b}"
+    # puts "c,d:      #{c}\t#{d}"
+    # puts "interp:   #{interp}"
+    # # END DEBUG
+    interp
 end
 
 class DemFetcherASTER
@@ -343,7 +375,7 @@ class DemPaperCut
        # But that's kind of overkill at the moment.  Let's just try 
        # a simple rule -ETJ 22 Jan 2012
        min_dest = 0
-       max_dest = [ 2*section_h - frame_elev, top_margin - r_notch - frame_elev].min
+       max_dest = [ 2.5*section_h - frame_elev, top_margin - r_notch - frame_elev].min
        range_dest = max_dest - min_dest
        
        # scale all points from 0 to max_height
@@ -372,6 +404,9 @@ class DemPaperCut
         y = (A4_H - cut_height)/2
         im.start_group( {}, [x,y])
         
+        # Label map with location
+        title_text = "#{sub_region or dem_data.region}: Looking #{orientation}"
+        im.text( 0, -10, title_text, {:font_size => 8})
         im.set_style @@svg_valley_style
             # the folds at the bottom of each section; All but one of these
             # will be obscured by the next section down        
@@ -391,6 +426,8 @@ class DemPaperCut
             
             # sections
             @num_sections.times { |n|   
+                # TODO: Could this be cleaned up with use of transforms
+                # rather than ugly math? -ETJ 23 Jan 2012
                 start_y = top_margin + section_h * n
                 
                 # left side triangles
@@ -519,92 +556,62 @@ class DemPaperCut
 end
 
 if __FILE__ == $0
+    # ETJ DEBUG
+    # pgm_2_8bps( "dems/ASTGTM2_N45W122_dem.pgm", 4000)
+    pgm_2_8bps( "dems/ASTGTM2_N36W117_dem.pgm", 4000)
+    return
+    # END DEBUG
     
-    steens_link = "http://maps.google.com/?ll=42.705903,-118.639984&spn=0.171304,0.363579&t=h&z=12&vpsrc=6"
-    steens_llr = LatLongRegion.region_from_google_maps_link( steens_link)
 
-    mt_hood_link = "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.1,0.1&z=13&vpsrc=6"
-    # mt_hood_link = "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.081885,0.11982&z=13&vpsrc=6"
-    mt_hood_data_file = "dems/ASTGTM2_N45W122_dem.pgm"
-    hood_big_region = LatLongRegion.region_from_ASTER_filename( mt_hood_data_file)
-    hood_small_region = LatLongRegion.region_from_google_maps_link( mt_hood_link)
+    show_mountain = false
+    if show_mountain
+        mt_hood_link = "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.7,0.6&z=13&vpsrc=6"
+        hood_small_region = LatLongRegion.region_from_google_maps_link( mt_hood_link)
+        # mt_hood_link = "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.081885,0.11982&z=13&vpsrc=6"
 
+        mt_hood_data_file = "dems/ASTGTM2_N45W122_dem.pgm"
+        hood_data = DemData.from_ASTER_pgm( mt_hood_data_file)
+
+        dpc = DemPaperCut.new( hood_data, :east, 133, 133, 30, 20)
+        # dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg", hood_small_region, true)
+        dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg", nil, true)
     
-    hood_data = DemData.from_ASTER_pgm( mt_hood_data_file)
-    dpc = DemPaperCut.new( hood_data, :north, 133, 133, 15, 40)
-    # dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg", hood_small_region, true)
-    dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg", hood_small_region, true)
-    # dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg", nil, true)
+    else
+        dummy_arr = [[50, 25], 
+                     [25, 50]]
+                 
+        dummy_arr = [   [   0,   0,   5,   0,   0]*2,
+                        [   0,   0,  10,   0,   0]*2,
+                        [   0,   5,  15,   5,   0]*2,
+                        [   0,   0,  10,   0,   0]*2,
+                        [   0,   0,   5,   0,   0]*2,
+            ]
+        
+        # A set of cosine waves
+        dummy_arr = []
+        num_slices = 32
+        num_points = 32
+        num_slices.times { |n|
+            dummy_arr[n] = []
+            num_points.times { |i|  
+                a = (i + n*2).to_f/num_points * 4 * Math::PI
+                dummy_arr[n] << Math.cos( a)
+            }
+        }
     
-    
-    # dummy_arr = [[50, 25], 
-    #              [25, 50]]
-    #              
-    # dummy_arr = [   [   0,   0,   5,   0,   0]*2,
-    #                 [   0,   0,  10,   0,   0]*2,
-    #                 [   0,   5,  15,   5,   0]*2,
-    #                 [   0,   0,  10,   0,   0]*2,
-    #                 [   0,   0,   5,   0,   0]*2,
-    #     ]
-    #     
-    # # A set of cosine waves
-    # dummy_arr = []
-    # num_slices = 16
-    # num_points = 32
-    # num_slices.times { |n|
-    #     dummy_arr[n] = []
-    #     num_points.times { |i|  
-    #         a = (i + n*2).to_f/num_points * 4 * Math::PI
-    #         dummy_arr[n] << Math.cos( a)
-    #     }
-    # }
-    # 
-    # # dummy_arr = [[ 0, 1, 0, 2], 
-    # #              [ 0, 1, 0, 2]]
-    # dummy_data = DemData.new( steens_llr, dummy_arr)
-    # # testing
-    # dpc = DemPaperCut.new( dummy_data, :north, 133, 133, num_slices, \
-    # num_points) #, dummy_arr.length*3 , dummy_arr[0].length*2)
-    # dpc.write_frame_svg( "/Users/jonese/Desktop/test_frame.svg")
-    # dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg", nil, true)
+        # dummy_arr = [[ 0, 1, 0, 2], 
+        #              [ 0, 1, 0, 2]]
+        steens_link = "http://maps.google.com/?ll=42.705903,-118.639984&spn=0.171304,0.363579&t=h&z=12&vpsrc=6"
+        steens_small = LatLongRegion.region_from_google_maps_link( steens_link)        
+        steens_file = "dems/ASTGTM2_N36W117_dem.pgm"
+        steens_data = DemData.from_ASTER_pgm( steens_file)
+        # dummy_data = DemData.new( steens_llr, dummy_arr)
+        # testing
+        dpc = DemPaperCut.new( steens_data, :north, 133, 133, num_slices, num_points)
+        dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg", nil, true)
+    end
 end
 
 
 
-"""
-# Mt. Fuji
-http://maps.google.com/maps?q=mount+fuji&hl=en&ll=35.372255,138.689003\
-&spn=0.190084,0.363579&geocode=+&hnear=Mt+Fuji&t=m&z=12&vpsrc=6
-# Someplace in Korea, after getting there from Mt. Fuji
-http://maps.google.com/maps?q=mount+fuji&hl=en&ll=35.611534,127.898712\
-&spn=0.189519,0.363579&geocode=+&hnear=Mt+Fuji&t=m&z=12&vpsrc=6
-# Steens mountain, after navigating there from home
-http://maps.google.com/?ll=42.705903,-118.639984&spn=0.171304,0.363579\
-&hnear=3384+SE+Clinton+St,+Portland,+Oregon+97202&t=h&z=12&vpsrc=6
-#Nanga Parbat, northern Pakistan
-http://maps.google.com/maps?q=Nanga+Parbat&hl=en&ll=35.264123,74.584122&\
-spn=0.380677,0.727158&sll=33.770015,76.695557&sspn=6.199075,11.634521&vpsrc=6\
-&hnear=Nanga+Parbat&t=h&z=11
-""" # !> useless use of a literal in void context
-# ~> -:260:in `bilinear_interpolation': undefined method `-' for nil:NilClass (NoMethodError)
-# ~> 	from -:240:in `elevation_at_location'
-# ~> 	from -:170:in `sample'
-# ~> 	from -:161:in `times'
-# ~> 	from -:161:in `sample'
-# ~> 	from -:158:in `times'
-# ~> 	from -:158:in `sample'
-# ~> 	from -:361:in `write_svg'
-# ~> 	from -:532
-# >> x1 = -121.748475
-# >> x2 = -121.648475
-# >> y1 = 45.419635
-# >> y2 = 45.319635
-# >> x_samples = 40
-# >> y_count = 15
-# >> (0, 0) at lat/long: -121.748475, 45.419635
-# >> max_y_ind = 3600
-# >> max_x_ind = 3600
-# >> lat_long.lat = -121.748475
-# >> region.min_lat = -122
-# >> region.max_lat = -121
-# >> x_ind_1, y_ind_1 = 325510, 905
+
