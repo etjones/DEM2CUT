@@ -31,10 +31,12 @@ def pgm_header( width, height, range=255, filetype=5)
     header = %Q{P#{filetype}\n#{width} #{height}\n#{range}\n}
 end
 def scale_pgm_data( pgm_2d_arr, in_place=false, max_dest_val=255, max_source_val=nil)
-    # FIXME: assumes all values in pgm_2d_arr are positive. 
+    # FIXME: assumes all values in pgm_2d_arr are positive. This could be fixed by
+    # calculating minimum values and using those in the scaling
     if not max_source_val
         maxes = []
         pgm_2d_arr.each {|e|  maxes << e.max}
+        max_source_val = maxes.max
     end
     scale_factor = max_dest_val.to_f/max_source_val
     if in_place
@@ -97,7 +99,6 @@ def write_pgm( pgm_path, pgm_2d_arr, output_range=255)
     open( pgm_path, "w"){|f| f.write(out)}    
 end
 
-
 def append_to_basename( file_path, to_append)
     ext = File.extname( file_path)
     dirname, basename = File.split( File.expand_path( file_path))
@@ -106,14 +107,6 @@ def append_to_basename( file_path, to_append)
 end
 def scale( val, src_min, src_max, dest_min, dest_max)
     retval = (val - src_min).to_f/(src_max - src_min) * (dest_max - dest_min) + dest_min
-    # # ETJ DEBUG
-    # puts "val = #{val}"
-    # puts "src_min = #{src_min}"
-    # puts "src_max = #{src_max}"
-    # puts "dest_min = #{dest_min}"
-    # puts "dest_max = #{dest_max}"
-    # puts "retval = #{retval}"
-    # # END DEBUG
     retval
 end
 def bilinear_interpolation( x, y, x1, y1, x2, y2, two_by_two)
@@ -131,18 +124,107 @@ def bilinear_interpolation( x, y, x1, y1, x2, y2, two_by_two)
               c * recip * (x2 -  x) * (y-y1) +
               d * recip * ( x - x1) * (y-y1)
              )
-    # # ETJ DEBUG
-    # puts "x1,y1:    #{x1}\t#{y1}"
-    # puts "x2,y2:    #{x2}\t#{y2}"
-    # puts "x,y:      #{x}\t#{y}"    
-    # 
-    # puts "a,b:      #{a}\t#{b}"
-    # puts "c,d:      #{c}\t#{d}"
-    # puts "interp:   #{interp}"
-    # # END DEBUG
     interp
 end
 
+class DemData
+    attr_reader :region, :data
+    def initialize( region, data=nil)
+        """DemData represents a rectangular region on earth,
+        and can be queried about the elevation at any particular point
+        within its bounds""" # !> unused literal ignored
+        @region = nil
+        @data = data # for now, assume data is a 2D array of elevations
+        set_region( region)
+    end
+    def set_region( region)
+        @region = region
+    end
+    def sample( vert_points, horiz_points, orientation=:north, sub_region=nil)
+        # if sub_region is supplied and is valid, temporarily use it
+        should_switch = sub_region and region.contains_region?( sub_region)
+        if should_switch
+            old_region = region
+            set_region( sub_region)
+        end
+        llr = region
+        
+        # TODO raise error if not [:north, :south, :east, :west].include? orientation
+        
+        x1, x2, y1, y2, x_samples, y_count = case orientation
+           when :north
+               [llr.min_long, llr.max_long, llr.min_lat, llr.max_lat, horiz_points, vert_points]
+           when :south 
+               [llr.max_long, llr.min_long, llr.max_lat, llr.min_lat, horiz_points, vert_points]
+           when :east
+               [llr.min_lat, llr.max_lat, llr.max_long, llr.min_long, vert_points, horiz_points]
+           when :west
+               [llr.max_lat, llr.min_lat, llr.min_long, llr.max_long, vert_points, horiz_points]
+           else puts "orientation: #{orientation} but should be in " + [:north, :south, :east, :west].to_s
+        end
+
+        x_gap = (x2 - x1).to_f / (x_samples - 1)
+        y_gap = (y2 - y1).to_f / (y_count - 1)
+        
+        invert_lat_long = [:east, :west].include?( orientation)
+
+        # Switch region back if needed
+        if should_switch
+            set_region( old_region)
+        end
+        
+        sections = []
+        vert_points.times { |i| 
+            lat = y1 + y_gap*i
+            sections[i] = []
+            horiz_points.times { |j| 
+                long = x1 + x_gap*j
+                lat_long = LatLong.new( *(invert_lat_long ? [long, lat] : [lat, long])) 
+                sections[i] << elevation_at_location( lat_long)
+            }
+        }
+
+        sections
+    end
+    def elevation_at_location( lat_long)
+        # find the indices of the four data points 
+        # closest to lat_long
+        # then interpolate between them to find the elevation
+        
+        x, y = lat_long.long, lat_long.lat
+        
+        min_x_ind = 0
+        min_y_ind = 0
+        max_y_ind = @data.length - 1
+        max_x_ind = @data[0].length - 1        
+        
+        # Find where in the data we want to look
+        y_fractional_index = scale( y, region.min_lat,  region.max_lat,  min_y_ind, max_y_ind)
+        x_fractional_index = scale( x, region.min_long, region.max_long, min_x_ind, max_x_ind)
+        y_ind_1 = y_fractional_index.to_i
+        x_ind_1 = x_fractional_index.to_i
+        # don't go off the edges of the array
+        if y_ind_1 == max_y_ind; y_ind_1 -= 1; end
+        if x_ind_1 == max_x_ind; x_ind_1 -= 1; end
+        x_ind_2 = x_ind_1 + 1
+        y_ind_2 = y_ind_1 + 1
+        
+        two_by_two = [  [@data[y_ind_1][x_ind_1], @data[y_ind_1][x_ind_2]],
+                        [@data[y_ind_2][x_ind_1], @data[y_ind_2][x_ind_2]]                  
+                     ]
+        # elev = bilinear_interpolation( x, y, region.min_long, region.min_lat,
+        #             region.max_long, region.max_lat, two_by_two)
+        elev = bilinear_interpolation( x_fractional_index, y_fractional_index,
+                    x_ind_1, y_ind_1, x_ind_2, y_ind_2, two_by_two)
+        return elev
+    end
+    def DemData.from_ASTER_pgm( pgm_path, max_elevation = 8500)
+         region = LatLongRegion.from_ASTER_filename( pgm_path)
+         data = pgm_2_arr( pgm_path, max_elevation)
+         # TODO: error checking
+         DemData.new( region, data)
+    end
+end
 class LatLong
     attr_reader :lat, :long
     def initialize( lat, long)
@@ -215,7 +297,6 @@ class LatLongRegion
         (max_lat - min_lat).to_f/(max_long - min_long)
     end
 end
-class DemData
 class DemPaperCut
     @@svg_cut_style     = {:stroke => "#7f3f00", :stroke_width => 0.5, :fill => "none"}
     @@svg_valley_style  = {:stroke => "#007299", :stroke_width => 0.5, :fill => "none"}
@@ -236,7 +317,7 @@ class DemPaperCut
         """ 
         # TODO: margins & section separation need to be adaptive
         # to the data. If elevation is significantly different between
-        # one section and the next, cut lines can interfere.
+        # one section and the next, cut lines can overlap each other
         
         # Likewise, margins might not be adequate if top or bottom
         # elevations are large
@@ -247,6 +328,7 @@ class DemPaperCut
         @cut_height = cut_height
         @bot_margin = bot_margin
         @top_margin = top_margin
+        @section_h = (cut_height - bot_margin - top_margin) / num_sections
         @notch_depth = 7.25
         
         @frame_elev = 5
@@ -260,22 +342,14 @@ class DemPaperCut
         # If dem_data's region is not square, we don't want a square 
         # cut pattern.  Alter top/ bottom margin so we get a 
         # suitable aspect ration.
-        @top_margin, @bot_margin, @section_h = fix_aspect_ratio( dem_data.region, cut_width-2*frame_width, cut_height)
+        # FIXME: this logic is incomplete
+        # @top_margin, @bot_margin, @section_h = fix_aspect_ratio( dem_data.region, cut_width-2*frame_width, cut_height)
          
         
     end
     def fix_aspect_ratio( region, w, h)
         aspect_ratio = region.aspect_ratio
-        
-        # ETJ DEBUG
-        
-        puts "w = #{w}"
-        puts "h = #{h}"
-        puts "aspect_ratio = #{aspect_ratio}"
 
-
-        # END DEBUG
-        
         # Handle regions wider than tall
         if region.aspect_ratio <= 1
             new_h = w * aspect_ratio
@@ -283,11 +357,7 @@ class DemPaperCut
             bot = (h - new_h)/2.0
             top = (h - new_h)/2.0
             sect = new_h/(@num_sections -1)  
-            # ETJ DEBUG
-            puts "top = #{top}"
-            puts "bot = #{bot}"
-            puts "sect = #{sect}"
-            # END DEBUG      
+     
 
             return top, bot, sect
         else
@@ -304,14 +374,22 @@ class DemPaperCut
         min_src = all_pts.min
         range_src = max_src - min_src
        
-        # Really, we need to know the largest gap between a point in
-        # one section and a point in the next section: 
-        # max( (samples[i][j] - samples[i+1][j]).abs) for i in num_sections, j in x_samples
+        # To guarantee that cut lines don't intersect, we need to know the 
+        # smallest gap between a point in one section and a point in the 
+        # next section: 
+        # gaps = []
+        # 
+        # samples[0..-2].each_with_index { |e, y|  
+        #     e.each_with_index { |f, x|  
+        #         gaps = f - samples[y+1][x] 
+        #     }
+        # }
+        # min_inter_section_gap = gaps.min
         
         # But that's kind of overkill at the moment.  Let's just try 
         # a simple rule -ETJ 22 Jan 2012
         min_dest = 0
-        max_dest = [ 2.5*section_h - frame_elev, top_margin - r_notch - frame_elev].min
+        max_dest = [ 1.5*section_h - frame_elev, top_margin - r_notch - frame_elev].min
         range_dest = max_dest - min_dest
        
         # scale all points from 0 to max_height
@@ -362,8 +440,8 @@ class DemPaperCut
             
             # sections
             @num_sections.times { |n|   
-                # TODO: Could this be cleaned up with use of transforms
-                # rather than ugly math? -ETJ 23 Jan 2012
+                # TODO: Clean this up with use of transforms in the SVG code
+                # rather than ugly math -ETJ 23 Jan 2012
                 start_y = top_margin + section_h * n
                 
                 # left side triangles
@@ -394,7 +472,7 @@ class DemPaperCut
                 all_pts = pts_left + pts + pts_right 
                 
                 # The fill here is a hack, to cover up the fold in the previous
-                # section and keep us from having to calculation where
+                # section and keep us from having to calculate where
                 # two sections intersect
                 im.polyline( *(all_pts +  [{:fill => "white"}]))
                 # im.polyline( *(all_pts))
@@ -490,78 +568,58 @@ class DemPaperCut
     end
 end
 
-if __FILE__ == $0
-    # ETJ DEBUG
-    # pgm_2_8bps( "dems/ASTGTM2_N45W122_dem.pgm", 4000)
-    # return
-    # pgm_2_8bps( "dems/ASTGTM2_N36W117_dem.pgm", 4000)
-    # return
-    # END DEBUG
+def main
+    which_region = [:fuji, :hood, :cosine]
     
-
-    show_mountain = true
-    if show_mountain
-        
+    case which_region[2]
+    when :fuji
+        # Mt.   Fuji
         mt_fuji_link = "http://maps.google.com/?ll=35.360496,138.742905&spn=0.120255,0.218353&t=h&z=13"
         fuji_small_region = LatLongRegion.from_google_maps_link( mt_fuji_link)
+
         fuji_data_file =  "dems/ASTGTM2_N35E138_dem.pgm"
-        
         fuji_data = DemData.from_ASTER_pgm( fuji_data_file)
-        dpc = DemPaperCut.new( fuji_data, :north, 133, 133, 20, 30)
-        # dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg", nil, true)
-        dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg", fuji_small_region, true)   
+
+        dpc = DemPaperCut.new( fuji_data, :north, 133, 133, 8, 100)
+        dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", nil, true)
+        # dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", fuji_small_region, true)   
         return   
-          
-        
-        # mt_hood_link = "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.7,0.6&z=13&vpsrc=6"
+    when :hood      
+        # Mt Hood, a volcanic peak near my home in Oregon, USA
         mt_hood_link = "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.081885,0.11982&z=13&vpsrc=6"
-        mt_hood_link = "http://maps.google.com/?ll=45.36276,-121.693153&spn=0.207211,0.436707&t=h&z=12"
         hood_small_region = LatLongRegion.from_google_maps_link( mt_hood_link)
-        # mt_hood_link = "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.081885,0.11982&z=13&vpsrc=6"
 
         mt_hood_data_file = "dems/ASTGTM2_N45W122_dem.pgm"
         hood_data = DemData.from_ASTER_pgm( mt_hood_data_file)
 
-        dpc = DemPaperCut.new( hood_data, :north, 133, 133, 30, 30)
-        dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg", hood_small_region, true)
-        # dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg", nil, true)
+        dpc = DemPaperCut.new( hood_data, :north, 133, 133, 16, 30)
+        dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", nil, true)
+        # dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", hood_small_region, true)
     
-    else
-        dummy_arr = [[50, 25], 
-                     [25, 50]]
-                 
-        dummy_arr = [   [   0,   0,   5,   0,   0]*2,
-                        [   0,   0,  10,   0,   0]*2,
-                        [   0,   5,  15,   5,   0]*2,
-                        [   0,   0,  10,   0,   0]*2,
-                        [   0,   0,   5,   0,   0]*2,
-            ]
-        
+    when :cosine
         # A set of cosine waves
         dummy_arr = []
-        num_slices = 32
+        num_slices = 20
         num_points = 32
         num_slices.times { |n|
             dummy_arr[n] = []
             num_points.times { |i|  
-                a = (i + n*2).to_f/num_points * 4 * Math::PI
+                a = (i + n*3).to_f/num_points * 4 * Math::PI
                 dummy_arr[n] << Math.cos( a)
             }
         }
-    
-        # dummy_arr = [[ 0, 1, 0, 2], 
-        #              [ 0, 1, 0, 2]]
-        steens_link = "http://maps.google.com/?ll=42.705903,-118.639984&spn=0.171304,0.363579&t=h&z=12&vpsrc=6"
-        steens_small = LatLongRegion.from_google_maps_link( steens_link)        
-        steens_file = "dems/ASTGTM2_N36W117_dem.pgm"
-        steens_data = DemData.from_ASTER_pgm( steens_file)
-        # dummy_data = DemData.new( steens_llr, dummy_arr)
-        # testing
-        dpc = DemPaperCut.new( steens_data, :north, 133, 133, num_slices, num_points)
-        dpc.write_svg( "/Users/jonese/Desktop/test_cut.svg", nil, true)
+        
+        steens_link = "http://maps.google.com/?ll=42.705903,-118.639984&spn=0.171304,0.363579&t=h&z=12&vpsrc=6"        
+        dummy_region = LatLongRegion.from_google_maps_link(steens_link)
+        dummy_data = DemData.new( dummy_region, dummy_arr)
+        dpc = DemPaperCut.new( dummy_data, :north, 133, 133, num_slices, num_points)
+        dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", nil, true)
     end
 end
 
+if __FILE__ == $0
+    main
+end
 
 
 
