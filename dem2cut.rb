@@ -345,7 +345,7 @@ class DemPaperCut
         # cut pattern.  Alter top/ bottom margin so we get a 
         # suitable aspect ration.
         # FIXME: this logic is incomplete
-        # @top_margin, @bot_margin, @section_h = fix_aspect_ratio( dem_data.region, cut_width-2*frame_width, cut_height)
+        @top_margin, @bot_margin, @section_h = fix_aspect_ratio( dem_data.region, cut_width-2*frame_width, cut_height)
          
         
     end
@@ -360,7 +360,6 @@ class DemPaperCut
             top = (h - new_h)/2.0
             sect = new_h/(@num_sections -1)  
      
-
             return top, bot, sect
         else
             # Haven't decided how to deal with taller-than-wide regions
@@ -392,7 +391,7 @@ class DemPaperCut
         # a simple rule -ETJ 22 Jan 2012
         min_dest = 0
         # max_dest = [ 7.5*section_h - frame_elev, top_margin - r_notch - frame_elev].min
-        max_dest = 4*section_h - frame_elev
+        max_dest = 6*section_h - frame_elev
         range_dest = max_dest - min_dest
        
         # scale all points from 0 to max_height
@@ -406,9 +405,13 @@ class DemPaperCut
         }
         samples
     end
-    def write_svg( filename, sub_region=nil, with_frame_sheet=true)
+    def write_svg( filename, sub_region=nil, title=nil, with_frame_sheet=true)
         # default to creating A4 sized images, and centering within that
         im = Rasem::SVGImage.new( A4_W, A4_H)
+        
+        if sub_region
+            @top_margin, @bot_margin, @section_h = fix_aspect_ratio( sub_region, cut_width, cut_height)
+        end
         
         # Get the data points we need, sorted correctly, from dem_data
         @sections = dem_data.sample( num_sections, x_samples, orientation, sub_region)
@@ -422,8 +425,9 @@ class DemPaperCut
         im.start_group( {}, [x,y])
         
         # Label map with location
-        title_text = "#{sub_region or dem_data.region}: Looking #{orientation}"
-        im.text( 0, -10, title_text, {:font_size => 8})
+        lat_long_text = "#{sub_region or dem_data.region}: Looking #{orientation}"
+        im.text( 0, -30, title, {:font_size => 8}) if title
+        im.text( 0, -10, lat_long_text, {:font_size => 8})
         im.set_style @@svg_valley_style
             # the folds at the bottom of each section; All but one of these
             # will be obscured by the next section down        
@@ -446,13 +450,21 @@ class DemPaperCut
                 # TODO: Clean this up with use of transforms in the SVG code
                 # rather than ugly math -ETJ 23 Jan 2012
                 start_y = top_margin + section_h * n
+
+                pts_left = [ un_notched, start_y]
+                pts_right = [cut_width - un_notched, start_y]
                 
-                # left side triangles
-                pts_left = [ un_notched, start_y, 
-                            frame_width, start_y - frame_elev]
-                # mirror on right
-                pts_right = [ cut_width - frame_width, start_y - frame_elev,
-                              cut_width - un_notched, start_y]
+                # Created a vertical line at left and right of each section,
+                # as in Miyamoto's original.  these tended to overlap each other,
+                # so I've taken that line out
+                if false
+                    # left side triangles
+                    pts_left = [ un_notched, start_y, 
+                                frame_width, start_y - frame_elev]
+                    # mirror on right
+                    pts_right = [ cut_width - frame_width, start_y - frame_elev,
+                                  cut_width - un_notched, start_y]
+                end
                 
                 # NOTE: @sections[n] has already been scaled
                 pts = []
@@ -576,38 +588,33 @@ class DemPaperCut
 end
 
 def main
-    which_region = [:fuji, :hood, :cosine]
+    which_region = [:fuji, :hood, :rainier, :steens, :cosine]
     use_subregion = true
     
+    file = nil
+    link = nil
     case which_region[0]
     when :fuji
         # Mt. Fuji
-        mt_fuji_link = "http://maps.google.com/?ll=35.360496,138.742905&spn=0.120255,0.218353&t=h&z=13"
-        fuji_small_region = LatLongRegion.from_google_maps_link( mt_fuji_link)
-
-        fuji_data_file =  "dems/ASTGTM2_N35E138_dem.pgm"
-        fuji_data = DemData.from_ASTER_pgm( fuji_data_file)
-
-        dpc = DemPaperCut.new( fuji_data, :south, 133, 133, 6, 100)
-
-        region = ( use_subregion ? fuji_small_region : nil)
-        dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", region, true)   
-    when :hood      
-        # Mt. Hood, a volcanic peak near my home in Oregon, USA
-        mt_hood_link = "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.081885,0.11982&z=13&vpsrc=6"
-        hood_small_region = LatLongRegion.from_google_maps_link( mt_hood_link)
-
-        mt_hood_data_file = "dems/ASTGTM2_N45W122_dem.pgm"
-        hood_data = DemData.from_ASTER_pgm( mt_hood_data_file)
-
-        dpc = DemPaperCut.new( hood_data, :north, 133, 133, 16, 30)
-        region = ( use_subregion ? hood_small_region : nil)
-        dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", region, true)
-    
+        title = "Mt. Fuji"
+        link = "http://maps.google.com/?ll=35.360496,138.742905&spn=0.120255,0.218353&t=h&z=13"
+        file = "dems/ASTGTM2_N35E138_dem.pgm"
+    when :hood    
+        title = "Mt. Hood, a volcanic peak near Portland Oregon, USA"
+        link = "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.081885,0.11982&z=13&vpsrc=6"
+        file = "dems/ASTGTM2_N45W122_dem.pgm"
+    when :rainier
+        title ="Mt. Rainier, a volcanic peak near Seattle, Washington, USA"
+        link = "http://maps.google.com/?ll=46.857609,-121.771431&spn=0.159408,0.28186&t=h&z=12"
+        file = "dems/ASTGTM2_N46W122_dem.pgm"
+    when :steens
+        title = "Steens Mountain, a fault-block mountain \nin barren land in SE Oregon, USA"
+        link ="http://maps.google.com/?ll=42.565219,-118.44635&spn=0.343382,0.413611&t=h&z=11"
+        file = "dems/ASTGTM2_N42W119_dem.pgm"
     when :cosine
-        # A set of cosine waves
+        title = "A set of cosine waves"
         dummy_arr = []
-        num_slices = 20
+        num_slices = 10
         num_points = 32
         num_slices.times { |n|
             dummy_arr[n] = []
@@ -617,11 +624,19 @@ def main
             }
         }
         
-        steens_link = "http://maps.google.com/?ll=42.705903,-118.639984&spn=0.171304,0.363579&t=h&z=12&vpsrc=6"        
+        steens_link = "http://maps.google.com/?ll=42.705903,-118.639984&spn=0.171304,0.273579&t=h&z=12&vpsrc=6"        
         dummy_region = LatLongRegion.from_google_maps_link(steens_link)
         dummy_data = DemData.new( dummy_region, dummy_arr)
         dpc = DemPaperCut.new( dummy_data, :north, 133, 133, num_slices, num_points)
-        dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", nil, true)
+        dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", nil, title, true)
+    end
+    
+    if link and file
+        region = LatLongRegion.from_google_maps_link( link)
+        data = DemData.from_ASTER_pgm( file)
+        dpc = DemPaperCut.new( data, :north, 133, 133, 16, 50)
+        region = ( use_subregion ? region : nil)
+        dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", region, title, true)
     end
 end
 
