@@ -330,7 +330,7 @@ class DemPaperCut
         @cut_height = cut_height
         @bot_margin = bot_margin
         @top_margin = top_margin
-        @section_h = (cut_height - bot_margin - top_margin) / num_sections
+        @section_h = (cut_height - bot_margin - top_margin) / (num_sections -1)
         @notch_depth = 7.25
         
         @frame_elev = 5
@@ -528,42 +528,46 @@ class DemPaperCut
                      @all_frame_width - 0, cut_height - bot_margin + r_notch)
         
         # notches
-
         num_sections.times { |n|
             start_y = @top_margin + section_h * n - r_notch
-            # left side
-            poly_left = [   r_notch,        start_y + r_notch, 
-                            @notch_depth,   start_y + r_notch, 
-                            @notch_depth,   start_y + r_notch + slot_width,
-                            r_notch,        start_y + r_notch + slot_width]
+            # translate each set of notches down by start_y
+            im.start_group( nil, [0, start_y])
+                # left side
+                poly_left = [   r_notch,        r_notch, 
+                                @notch_depth,   r_notch, 
+                                @notch_depth,   r_notch + slot_width,
+                                r_notch,        r_notch + slot_width]
 
-            im.arc( r_notch, start_y, r_notch, 180, 90)
-            im.polyline( *poly_left)
-            im.arc( r_notch, start_y + 2*r_notch + slot_width, r_notch, 90, 90)
+                im.arc( r_notch, 0, r_notch, 180, 90)
+                im.polyline( *poly_left)
+                im.arc( r_notch, 2*r_notch + slot_width, r_notch, 90, 90)
 
-            # right side
-            poly_right = []
-            poly_left.each_with_index { |e, i|  
-                poly_right << (i.odd? ? e : @all_frame_width -e )
-            }            
-            im.arc( @all_frame_width - r_notch, start_y, r_notch, 0, -90)
-            im.polyline( *poly_right)
-            im.arc( @all_frame_width - r_notch, start_y + 2*r_notch + slot_width, r_notch, 90, -90)
+                # right side
+                poly_right = []
+                poly_left.each_with_index { |e, i|  
+                    poly_right << (i.odd? ? e : @all_frame_width -e )
+                }            
+                im.arc( @all_frame_width - r_notch, 0, r_notch, 0, -90)
+                im.polyline( *poly_right)
+                im.arc( @all_frame_width - r_notch, 2*r_notch + slot_width, r_notch, 90, -90)
             
-            if n < num_sections - 1
-                im.line( 0, start_y + 2*r_notch + slot_width, 0, start_y + section_h)
-                im.line( @all_frame_width, start_y + 2*r_notch + slot_width, @all_frame_width, start_y + section_h)
-            end
+                if n < num_sections - 1
+                    im.line( 0, 2*r_notch + slot_width, 0, section_h)
+                    im.line( @all_frame_width, 2*r_notch + slot_width, @all_frame_width, section_h)
+                end
+            
+            im.end_group
         }
+        
         im.unset_style
 
         # vertical line folds in the frame
         im.set_style @@svg_valley_style
-        x_locs = [  @frame_width,
-                    @frame_width + @frame_elev,
-                    @all_frame_width - @frame_width - @frame_elev,
-                    @all_frame_width - @frame_width]
-        x_locs.each {|x| im.line( x, 0, x, cut_height) }
+            x_locs = [  @frame_width,
+                        @frame_width + @frame_elev,
+                        @all_frame_width - @frame_width - @frame_elev,
+                        @all_frame_width - @frame_width]
+            x_locs.each {|x| im.line( x, 0, x, cut_height) }
         im.unset_style
         im.end_group
         im.close
@@ -584,7 +588,7 @@ def main
         fuji_data_file =  "dems/ASTGTM2_N35E138_dem.pgm"
         fuji_data = DemData.from_ASTER_pgm( fuji_data_file)
 
-        dpc = DemPaperCut.new( fuji_data, :north, 133, 133, 15, 100)
+        dpc = DemPaperCut.new( fuji_data, :south, 133, 133, 6, 100)
 
         region = ( use_subregion ? fuji_small_region : nil)
         dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", region, true)   
