@@ -183,7 +183,7 @@ class DemData
                 sections[i] << elevation_at_location( lat_long)
             }
         }
-
+        
         sections
     end
     def elevation_at_location( lat_long)
@@ -199,10 +199,13 @@ class DemData
         max_x_ind = @data[0].length - 1        
         
         # Find where in the data we want to look
-        y_fractional_index = scale( y, region.min_lat,  region.max_lat,  min_y_ind, max_y_ind)
+        # y indices move top to bottom, but latitudes run bottom to top.  Invert them
+        y_fractional_index = scale( y, region.max_lat,  region.min_lat,  min_y_ind, max_y_ind)
         x_fractional_index = scale( x, region.min_long, region.max_long, min_x_ind, max_x_ind)
         y_ind_1 = y_fractional_index.to_i
         x_ind_1 = x_fractional_index.to_i
+        # TODO: possible off-by-one error in y indices:  should be -1 or +1?
+        
         # don't go off the edges of the array
         if y_ind_1 == max_y_ind; y_ind_1 -= 1; end
         if x_ind_1 == max_x_ind; x_ind_1 -= 1; end
@@ -212,10 +215,9 @@ class DemData
         two_by_two = [  [@data[y_ind_1][x_ind_1], @data[y_ind_1][x_ind_2]],
                         [@data[y_ind_2][x_ind_1], @data[y_ind_2][x_ind_2]]                  
                      ]
-        # elev = bilinear_interpolation( x, y, region.min_long, region.min_lat,
-        #             region.max_long, region.max_lat, two_by_two)
         elev = bilinear_interpolation( x_fractional_index, y_fractional_index,
                     x_ind_1, y_ind_1, x_ind_2, y_ind_2, two_by_two)
+                    
         return elev
     end
     def DemData.from_ASTER_pgm( pgm_path, max_elevation = 8500)
@@ -389,7 +391,8 @@ class DemPaperCut
         # But that's kind of overkill at the moment.  Let's just try 
         # a simple rule -ETJ 22 Jan 2012
         min_dest = 0
-        max_dest = [ 1.5*section_h - frame_elev, top_margin - r_notch - frame_elev].min
+        # max_dest = [ 7.5*section_h - frame_elev, top_margin - r_notch - frame_elev].min
+        max_dest = 4*section_h - frame_elev
         range_dest = max_dest - min_dest
        
         # scale all points from 0 to max_height
@@ -570,22 +573,23 @@ end
 
 def main
     which_region = [:fuji, :hood, :cosine]
+    use_subregion = true
     
-    case which_region[2]
+    case which_region[0]
     when :fuji
-        # Mt.   Fuji
+        # Mt. Fuji
         mt_fuji_link = "http://maps.google.com/?ll=35.360496,138.742905&spn=0.120255,0.218353&t=h&z=13"
         fuji_small_region = LatLongRegion.from_google_maps_link( mt_fuji_link)
 
         fuji_data_file =  "dems/ASTGTM2_N35E138_dem.pgm"
         fuji_data = DemData.from_ASTER_pgm( fuji_data_file)
 
-        dpc = DemPaperCut.new( fuji_data, :north, 133, 133, 8, 100)
-        dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", nil, true)
-        # dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", fuji_small_region, true)   
-        return   
+        dpc = DemPaperCut.new( fuji_data, :north, 133, 133, 15, 100)
+
+        region = ( use_subregion ? fuji_small_region : nil)
+        dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", region, true)   
     when :hood      
-        # Mt Hood, a volcanic peak near my home in Oregon, USA
+        # Mt. Hood, a volcanic peak near my home in Oregon, USA
         mt_hood_link = "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.081885,0.11982&z=13&vpsrc=6"
         hood_small_region = LatLongRegion.from_google_maps_link( mt_hood_link)
 
@@ -593,8 +597,8 @@ def main
         hood_data = DemData.from_ASTER_pgm( mt_hood_data_file)
 
         dpc = DemPaperCut.new( hood_data, :north, 133, 133, 16, 30)
-        dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", nil, true)
-        # dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", hood_small_region, true)
+        region = ( use_subregion ? hood_small_region : nil)
+        dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", region, true)
     
     when :cosine
         # A set of cosine waves
