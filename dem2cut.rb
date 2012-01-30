@@ -297,7 +297,7 @@ class LatLong
         sn = ( lat  > 0 ? 'N' : 'S')
         ew = ( long > 0 ? 'E' : 'W')
         # "#{sn}#{lat.abs}#{ew}#{long.abs}"
-        "%s%.2f%s%.2f"%[sn, lat, ew, long]
+        "%s%.2f%s%.2f"%[sn, lat.abs, ew, long.abs]
     end
     def LatLong.from_s( str)
         found_groups = /(\w)(\d+)(\w)(\d+)/.match( str) 
@@ -662,7 +662,7 @@ def main
     
     file = nil
     link = nil
-    case which_region[0]
+    case which_region[1]
     when :fuji
         # Mt. Fuji
         title = "Mt. Fuji"
