@@ -296,7 +296,6 @@ class LatLong
     def to_s
         sn = ( lat  > 0 ? 'N' : 'S')
         ew = ( long > 0 ? 'E' : 'W')
-        # "#{sn}#{lat.abs}#{ew}#{long.abs}"
         "%s%.2f%s%.2f"%[sn, lat.abs, ew, long.abs]
     end
     def LatLong.from_s( str)
@@ -650,12 +649,6 @@ class DemPaperCut
 end
 
 def main
-    
-    # f = "cached_dem_files/N36W117.hgt"
-    # a = hgt_2_arr( f)
-    # scale_2d_arr( a, true, 255)
-    # write_pgm( ENV["HOME"] + "/Desktop/hgt_2_pgm.pgm", a, 255)
-    # return
     
     which_region = [:fuji, :hood, :rainier, :steens, :cosine]
     use_subregion = true
