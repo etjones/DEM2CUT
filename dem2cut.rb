@@ -30,27 +30,10 @@ end
 def pgm_header( width, height, range=255, filetype=5)
     header = %Q{P#{filetype}\n#{width} #{height}\n#{range}\n}
 end
-def scale_pgm_data( pgm_2d_arr, in_place=false, max_dest_val=255, max_source_val=nil)
-    # FIXME: assumes all values in pgm_2d_arr are positive. This could be fixed by
-    # calculating minimum values and using those in the scaling
-    if not max_source_val
-        maxes = []
-        pgm_2d_arr.each {|e|  maxes << e.max}
-        max_source_val = maxes.max
-    end
-    scale_factor = max_dest_val.to_f/max_source_val
-    if in_place
-        pgm_2d_arr.each {|d|  d.map! { |e|  (e*scale_factor).to_i}}
-        return pgm_2d_arr
-    else
-        out = pgm_2d_arr.map {|d| d.map { |e| (e*scale_factor).to_i }} 
-        return out
-    end
-end
 def pgm_2_8bps( pgm_path, max_elevation=8500)
     filetype, width, height, range, header_bytes = read_pgm_header( pgm_path)
     data = pgm_2_arr( pgm_path, max_elevation)    
-    data = scale_pgm_data( data, true, 255, max_elevation)
+    data = scale_2d_arr( data, true, 255, max_elevation)
 
     file_8bps = append_to_basename( pgm_path, "_8bps")
 
@@ -99,11 +82,74 @@ def write_pgm( pgm_path, pgm_2d_arr, output_range=255)
     open( pgm_path, "w"){|f| f.write(out)}    
 end
 
+# ===============
+# = H G T Utils =
+# = ----------- =
+def hgt_2_arr( hgt_path, max_elevation=8500)
+    # SRTM files come in one of two common formats: 3 arc-second (~90m)
+    # and 1 arc-second (~30m).  Files are 1 degree square, so 3601 x 3601
+    # for 1 arc-second, or 1201 x 1201 for 3 arc-second. 
+    # Data points are 2 byte signed shorts.
+    
+    case File.size( hgt_path)
+    when 1201 * 1201 * 2: w = 1201; h = 1201
+    when 3601 * 3601 * 2: w = 3601; h = 3601
+    # TODO: raise an error if this isn't a correct size
+    else return false
+    end
+    
+    
+    token_key = "n*"
+    bytes_per_token = 2
+    
+    max_unsigned_short = 2**15
+    
+    data = []
+    open( hgt_path, "r") do |f|
+        h.times { |y| 
+            # String#unpack doesn't have a network-ordered signed-short
+            # key.  So do this for ourselves
+            data[y] = f.read( w * bytes_per_token).unpack( token_key)
+            data[y].map!{|e|
+                if e >= max_unsigned_short
+                    e -= max_unsigned_short
+                end
+                if e > max_elevation
+                    e = 0
+                else
+                    e 
+                end
+            }
+        }
+    end
+    data
+end
+# def hgt_links_for_region( region)
+#     
+# end
+
 def append_to_basename( file_path, to_append)
     ext = File.extname( file_path)
     dirname, basename = File.split( File.expand_path( file_path))
     appended = dirname + "/" + File.basename(basename, ".*") + to_append + ext
     appended
+end
+def scale_2d_arr( pgm_2d_arr, in_place=false, max_dest_val=255, max_source_val=nil)
+    # FIXME: assumes all values in pgm_2d_arr are positive. This could be fixed by
+    # calculating minimum values and using those in the scaling
+    if not max_source_val
+        maxes = []
+        pgm_2d_arr.each {|e|  maxes << e.max}
+        max_source_val = maxes.max
+    end
+    scale_factor = max_dest_val.to_f/max_source_val
+    if in_place
+        pgm_2d_arr.each {|d|  d.map! { |e|  (e*scale_factor).to_i}}
+        return pgm_2d_arr
+    else
+        out = pgm_2d_arr.map {|d| d.map { |e| (e*scale_factor).to_i }} 
+        return out
+    end
 end
 def scale( val, src_min, src_max, dest_min, dest_max)
     retval = (val - src_min).to_f/(src_max - src_min) * (dest_max - dest_min) + dest_min
@@ -129,13 +175,19 @@ end
 
 class DemData
     attr_reader :region, :data
-    def initialize( region, data=nil)
+    def initialize( region, data=nil, should_download=true)
         """DemData represents a rectangular region on earth,
         and can be queried about the elevation at any particular point
         within its bounds""" # !> unused literal ignored
         @region = nil
         @data = data # for now, assume data is a 2D array of elevations
         set_region( region)
+        
+        # if directed, find data for a region from the SRTM index
+        if data == nil and should_download
+            # Check if we have 
+        end
+        
     end
     def set_region( region)
         @region = region
@@ -221,10 +273,15 @@ class DemData
         return elev
     end
     def DemData.from_ASTER_pgm( pgm_path, max_elevation = 8500)
-         region = LatLongRegion.from_ASTER_filename( pgm_path)
+         region = LatLongRegion.from_lat_long_str( pgm_path)
          data = pgm_2_arr( pgm_path, max_elevation)
          # TODO: error checking
          DemData.new( region, data)
+    end
+    def DemData.from_SRTM_hgt( hgt_path, max_elevation = 8500)
+        region = LatLongRegion.from_SRTM_hgt( hgt_path)
+        data = hgt_2_arr( hgt_path, max_elevation)
+        DemData.new( region, data)
     end
 end
 class LatLong
@@ -237,7 +294,17 @@ class LatLong
         region.includes_point?( self)
     end
     def to_s
-        "(%.2f, %.2f)"%[lat, long]
+        sn = ( lat  > 0 ? 'N' : 'S')
+        ew = ( long > 0 ? 'E' : 'W')
+        # "#{sn}#{lat.abs}#{ew}#{long.abs}"
+        "%s%.2f%s%.2f"%[sn, lat, ew, long]
+    end
+    def LatLong.from_s( str)
+        found_groups = /(\w)(\d+)(\w)(\d+)/.match( str) 
+        north_south, lat, east_west, long = found_groups.captures
+        long = long.to_i * (("Ee".include? east_west) ? 1 : -1)
+        lat = lat.to_i * (("Nn".include? north_south) ? 1 : -1)
+        LatLong.new( lat, long)
     end
 end
 class LatLongRegion
@@ -273,16 +340,11 @@ class LatLongRegion
         max = LatLong.new( lat + lat_span/2, long + long_span/2)
         LatLongRegion.new( min, max)
     end
-    def LatLongRegion.from_ASTER_filename( aster_file)
+    def LatLongRegion.from_lat_long_str( str)
         # parse filenames like: ASTGTM2_N45W122_dem for lat/long data.
         # these files are all one degree wide & high
-        found_groups = /ASTGTM2_(\w)(\d+)(\w)(\d+)_dem/.match( aster_file) 
-        north_south, lat, east_west, long = found_groups.captures
-        long = long.to_i * (east_west == "E" ? 1 : -1)
-        lat = lat.to_i * (north_south == "N" ? 1 : -1)
-        
-        min = LatLong.new( lat, long)
-        max = LatLong.new( lat + 1, long + 1)
+        min = LatLong.from_s( str)
+        max = LatLong.new( min.lat + 1, min.long + 1)
         LatLongRegion.new( min, max)
     end
     def contains_point?( lat_long)
@@ -588,6 +650,13 @@ class DemPaperCut
 end
 
 def main
+    
+    # f = "cached_dem_files/N36W117.hgt"
+    # a = hgt_2_arr( f)
+    # scale_2d_arr( a, true, 255)
+    # write_pgm( ENV["HOME"] + "/Desktop/hgt_2_pgm.pgm", a, 255)
+    # return
+    
     which_region = [:fuji, :hood, :rainier, :steens, :cosine]
     use_subregion = true
     
