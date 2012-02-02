@@ -67,6 +67,8 @@ def pgm_2_arr( pgm_path, max_elevation=8500)
 end
 def write_pgm( pgm_path, pgm_2d_arr, output_range=255)
     height, width = pgm_2d_arr.length, pgm_2d_arr[0].length
+    #TODO: we should check that pgm_2d_arr all falls into output_range
+    # and scale it so that it does if not
     
     if output_range <= 255
         output_range = 255
@@ -124,10 +126,63 @@ def hgt_2_arr( hgt_path, max_elevation=8500)
     end
     data
 end
-# def hgt_links_for_region( region)
-#     
-# end
 
+# ====================
+# = Arc ASCII  Utils =
+# = ---------------- =
+def arc_ascii_2_arr( arc_path, max_elevation=8500)
+    data = []
+    header = read_arc_ascii_header( arc_path)
+    return false unless header
+    w, h, xll, yll, cellsize, no_data, header_bytes  = *header
+    open( arc_path, "r"){ |f|
+        f.read( header_bytes)
+        h.times { |y|  
+            line = f.readline
+            data[y] = line.split(" ").map { |e| e.to_i }
+        }
+    }
+    data
+end
+def read_arc_ascii_header( arc_path)
+    #     arc ascii header is of the form: 
+    # "ncols         6001
+    # nrows         6001
+    # xllcorner     -120.00041666668
+    # yllcorner     44.999583672325
+    # cellsize      0.00083333333333333
+    # NODATA_value  -9999
+    # "
+    #  See: http://docs.codehaus.org/display/GEOTOOLS/ArcInfo+ASCII+Grid+format
+    # for more info
+    arc_header_re = /(?x)ncols       \s+(\d+)            [\n\r]+
+                        nrows        \s+(\d+)            [\n\r]+
+                        xllcorner    \s+(-?\d+(?:\.\d+)) [\n\r]+
+                        yllcorner    \s+(-?\d+(?:\.\d+)) [\n\r]+
+                        cellsize     \s+(-?\d+(?:\.\d+)) [\n\r]+
+                        (nodata_value\s+(?:-?\d+)        [\n\r]+)?/
+
+    # NOTE: This is less flexible than it ought to be.  NODATA_value isn't
+    # necessarily included, and if it's not present we'll miss out on 
+    # some data values without some check for it.  Under the spirit of 
+    # simplest possible solution that can work, here goes, though.
+    header = ""
+    data = []
+    w, h, xll, yll, cellsize, no_data, header_bytes = [nil] * 7
+    open( arc_path, "r"){ |f|
+        6.times { |n| header <<  f.readline}
+        match = arc_header_re.match(header)
+        # NOTE: should raise exception if the header wasn't recognized
+        if not match; return false; end        
+        w, h, xll, yll, cellsize, no_data = match.captures.map { |e| e.to_f }
+        header_bytes = f.pos
+    }
+    return [ w.to_i, h.to_i, xll, yll, cellsize, no_data.to_i, header_bytes]    
+end
+
+# ==================
+# = Util functions =
+# = -------------- =
 def append_to_basename( file_path, to_append)
     ext = File.extname( file_path)
     dirname, basename = File.split( File.expand_path( file_path))
@@ -173,6 +228,9 @@ def bilinear_interpolation( x, y, x1, y1, x2, y2, two_by_two)
     interp
 end
 
+# ==========
+# = DemData =
+# = ------ =
 class DemData
     attr_reader :region, :data
     def initialize( region, data=nil, should_download=true)
@@ -649,7 +707,6 @@ class DemPaperCut
 end
 
 def main
-    
     which_region = [:fuji, :hood, :rainier, :steens, :cosine]
     use_subregion = true
     
