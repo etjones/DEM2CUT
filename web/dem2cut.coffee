@@ -65,14 +65,15 @@ drawPaths = (ctx, arr2d, w, h) ->
     scale_y = parseFloat( document.getElementById("scale").value)
     trans_y = (h/scale_y)/(arr2d.length + 1)
     # scale to fit in a w, h box
-    ctx.lineWidth = 0.2
     ctx.scale( scale_x, scale_y)
-    for y in [0...arr2d.length]
+    ctx.lineWidth = 1 / scale_y
+    # for y in [0...arr2d.length]
+    for row, y in arr2d
         # vertical transform
         ctx.translate( 0, trans_y*(y + 0.5))
         ctx.beginPath()
-        for x in [0...arr2d[y].length]
-            ctx.lineTo( x, arr2d[y][x])
+        for elt, x in row
+            ctx.lineTo( x, elt)
         ctx.stroke()
         # undo vertical transform.  
         ctx.translate( 0, -trans_y*(y + 0.5))

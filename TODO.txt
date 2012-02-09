@@ -9,8 +9,17 @@ TODO:
 
 
 Destination:
-- live-updating SVG for use on a website
-- interactive sliders
-- google maps interface for choosing regions
-- overlay for regions with available data
-- some means of acquiring more data - api for ASTER data?
+xx- live-updating HTML5 canvas for use on a website
+xx interactive sliders
+xx google maps interface for choosing regions
+    - overlay for regions with available data
+    - some means of acquiring more data - api for ASTER data?
+-- All data cached on server in formats with as little data as
+    reasonably possible.  90m grids are probably too dense
+
+BUGS:
+xx Coffeescript vertical scaling scales the lines we draw as well 
+as their positions.  Really, we just want to scale the positions 
+and have all the lines be the same thickness.  (alternately, set
+line thickness commensurate with scaling so lines always _appear_
+the same thickness)
