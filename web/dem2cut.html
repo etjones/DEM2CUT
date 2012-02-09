@@ -11,103 +11,27 @@
             #map_side {width: 45%; height: 80%; float: left;}
             #cut_side {width: 45%; height: 80%; float: right}
         </style>
-        <script type="text/javascript"src="http://maps.googleapis.com/maps/api/js?key=AIzaSyB7P8uxpUhIFuOuFCoLAJTRDn0md7UkeS0&sensor=false" ></script>
-        <script type="text/javascript" charset="utf-8" src="sprintf-0.7-beta1.js"></script>
+        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyB7P8uxpUhIFuOuFCoLAJTRDn0md7UkeS0&sensor=false" ></script>
+        <script type="text/javascript" src="coffee-script.js"></script>
+        <script type="text/javascript" src="jquery-1.5.2.min.js"></script>
+        <script type="text/coffeescript" src="dem2cut.coffee"></script>
         <script type="text/javascript">
-            var map = null;
-            var slice_ctx;
-            var canvas
-            function initializeMap() {
-                var myOptions = {
-                    center: new google.maps.LatLng(-34.397, 150.644),
-                    zoom: 8,
-                    mapTypeId: google.maps.MapTypeId.TERRAIN
-                };
-                    window.map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
-            }
-            function outlineCanvas(){
-                window.canvas=document.getElementById("cut_canvas");
-                var c = window.canvas
-                window.slice_ctx= window.canvas.getContext("2d");
-                window.slice_ctx.fillStyle="#FF0000";
-                // window.slice_ctx.fillRect(0,0, c.width, c.height);
-                // Show lat/long on slice side:
-                var ll = window.map.getBounds();
-                if ( ll){
-                    var sw = ll.getSouthWest();
-                    var ne = ll.getNorthEast();
-                    var out_s = sprintf( "(%s) to (%s)",sw.toUrlValue( 3), ne.toUrlValue(3));
-                    
-                    document.getElementById("lat_long").innerHTML= out_s;                
-                }
-            }
-            function saveAsPNG(){
-                // no argument defaults to image/png; image/jpeg, etc also work on some
-                // implementations -- image/png is the only one that must be supported per spec.
-                window.location = document.getElementById("cut_canvas").toDataURL("image/png");                
-            }
-            function showValue(newValue, id){
-                document.getElementById( id).innerHTML=newValue;
-            }            
-            function reSlice(){
-                /* TODO: write this*/
-                var w = window.canvas.width
-                var h = window.canvas.height
-                var slices = parseInt(document.getElementById("slice_count").value)
-                var arr = cosArr( Math.floor(w/3), slices )
-                
-                var c = window.slice_ctx
-                // Blank the whole context first
-                c.fillStyle="white"
-                c.fillRect( 0,0, w, h)
-                c.fillStyle = "black"
-                drawPaths( c, arr, w, h)                
-            }
-            function cosArr( w, h){
-                var anArr = new Array( h);
-                for (var y = 0; y < h ; y++){
-                    anArr[y] = new Array( w);
-                    for ( var x = 0; x < w; x++ ){
-                        var a = ( 4* y + x *3)/w * 4 * Math.PI
-                        anArr[y][x] = Math.cos( a);                           
-                    }
-                }
-                return anArr;
-            }
-            function drawPaths( ctx, anArr, w, h){
+            var showValue;
 
-                var scale_x = w/anArr[0].length
-                var scale_y = parseFloat(document.getElementById("scale").value)
-                var trans_y = h/scale_y/(anArr.length + 1)
-                ctx.lineWidth = 0.2
-                ctx.scale( scale_x, scale_y)
-                for (var i=0; i < anArr.length; i++) {
-                    
-                    ctx.translate( 0, trans_y*i )
-                    ctx.beginPath()
-                    for (var j=0; j < anArr[i].length; j++) {
-                        var new_y = anArr[i][j]
-                        ctx.lineTo( j, new_y)
-                    };
-                    ctx.stroke()
-                    ctx.translate( 0, -trans_y*i)
-                }
-                ctx.scale( 1/scale_x, 1/scale_y)
-            }
+            showValue = function(newValue, id) {
         </script>
-        
     </head>
-    <body onload="initializeMap()">
+    <body >
         <h3 id="dem_2_cut">Dem 2 Cut</h3>
 
         <div id="map_side" >
             <div id="map_canvas"></div>
-            <button type="button" onclick="outlineCanvas()">Make a cut pattern of this location</button>
+            <button type="button" id="useLoc">Make a cut pattern of this location</button>
         </div>
         <div id="cut_side" >
-            <canvas id="cut_canvas" width="266" height="266" onload="outlineCanvas()"></canvas>            
+            <canvas id="cut_canvas" width="266" height="266"></canvas>            
             <div id="slice_controls">
-                Location: <br>  <span id="lat_long"></span><br>
+                Location: <br>  <span id="lat_long">(?, ?)</span><br>
                 <form action="submit_slice">
                     Slices:<input type="range" name="slice_count" 
                             value="10" min="6" max="25" id="slice_count"
@@ -123,8 +47,8 @@
                         <option value="West">West</option>
                     </select><br>
                     <!-- TODO: add all necessary args here -->
-                    <button type="button" onclick="reSlice()">Re-cut slice pattern</button><br>
-                    <button type="button" onclick="saveAsPNG()">Save pattern as PNG</button><br>
+                    <button type="button" id="reSlice">Re-cut slice pattern</button><br>
+                    <button type="button" id="saveToPng">Save pattern as PNG</button><br>
 
                 </form>                        
             </div> 
