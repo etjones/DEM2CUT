@@ -16,9 +16,10 @@
         <script type="text/javascript" src="jquery-1.5.2.min.js"></script>
         <script type="text/coffeescript" src="dem2cut.coffee"></script>
         <script type="text/javascript">
-            var showValue;
-
-            showValue = function(newValue, id) {
+            function showValue(newValue, id){
+                document.getElementById( id).innerHTML=newValue;
+            }            
+                
         </script>
     </head>
     <body >
@@ -35,10 +36,10 @@
                 <form action="submit_slice">
                     Slices:<input type="range" name="slice_count" 
                             value="10" min="6" max="25" id="slice_count"
-                            onchange="showValue(this.value, &quot;slices&quot;); reSlice()" />
+                            onchange="showValue(this.value, &quot;slices&quot;)" />
                     <span id="slices">10</span>
                     <br>
-                    Scale:<input type="range" name="scale" value="2" min="0.15" max="10" id="scale" onchange="reSlice()"/><br>
+                    Scale:<input type="range" name="scale" value="2" min="0.15" max="10" id="scale"/><br>
                     Direction:
                     <select name="Direction">
                         <option value="North">North</option>

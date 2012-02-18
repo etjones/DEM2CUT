@@ -1,22 +1,17 @@
-# TODO: do these top variables need to be attached to window?
-# var map = null;
-# var slice_ctx;
-# var canvas
+# Hi CoffeeScript!
+initializeMap = ->
+    myOptions =
+        zoom: 6        
+        center: new google.maps.LatLng(-30.397, 140.644)
+        mapTypeId: google.maps.MapTypeId.TERRAIN
+    window.map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
 
-# Supplied by Google; just keep this literal
-`
-    function initializeMap() {
-        var myOptions = {
-            center: new google.maps.LatLng(-34.397, 150.644),
-            zoom: 8,
-            mapTypeId: google.maps.MapTypeId.TERRAIN
-        };
-        window.map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
-}
-`
 outlineCanvas = ->
     window.canvas=document.getElementById("cut_canvas");
     window.slice_ctx= window.canvas.getContext("2d");
+    reSlice()
+
+showLatLong = ->
     # Show lat/long on slice side:
     # Note: When run on page load, ll hasn't been generate yet. 
     # How to wait until it's available?
@@ -25,13 +20,12 @@ outlineCanvas = ->
     if (ll)
         sw = ll.getSouthWest()
         ne = ll.getNorthEast()
-        out_s = "(#{sw.toUrlValue(3)}, #{ne.toUrlValue(3)})"
+        out_s = "(#{sw.toUrlValue(2)}, #{ne.toUrlValue(2)})"
     else
         out_s = "( ?, ?)"
     document.getElementById("lat_long").innerHTML= out_s
     # Note:  this below doesn't seem to work.  Why?
-    # $('#lat_long').innerText = out_s
-    reSlice()
+    # $('#lat_long').innerHTML( out_s)
 
 saveAsPNG = ->
     # TODO: Better to open a new tab with this?          
@@ -40,11 +34,13 @@ saveAsPNG = ->
 showValue = (newValue, id)  -> 
     document.getElementById( id).innerHTML=newValue
 
+slices = -> parseInt(document.getElementById("slice_count").value, 10)
 reSlice = ->
+    showLatLong()
+    
     w = window.canvas.width
     h = window.canvas.height
-    slices = parseInt(document.getElementById("slice_count").value, 10)
-    arr = cosArr( Math.floor(w/3), slices )    
+    arr = cosArr( Math.floor(w/3), slices() )    
     c = window.slice_ctx
     # Blank the whole context first
     c.fillStyle="white"
@@ -81,6 +77,39 @@ drawPaths = (ctx, arr2d, w, h) ->
     # undo scaling
     ctx.scale( 1/scale_x, 1/scale_y)
 
+getDemData = ->
+    span = window.map.getBounds().toSpan()
+    ll = window.map.getCenter()
+    
+    # TODO: long_samples should be defined on a more global level
+    input = 
+        lat: ll.lat()
+        long: ll.lng()
+        lat_span: span.lat()
+        long_span: span.lng()
+        lat_samples: slices()
+        long_samples: 50
+         
+    # This should eventually return a big list:
+    # something like: var big_list = [ [100 data points], []*rows lists];
+    # For now it's just proof of concept that we can get the right data
+    # from Google maps and to the CGI
+    $.get('cgi-bin/dem_extractor.cgi', 
+            input, 
+            (result,status,xhr) ->
+                alert( result)
+                # For still undetermined reasons, none of the lines below
+                # seem to do anything.
+                # // $('#test_text').html = status;
+                # document.getElementById('test_text').html = status;
+                # // document.getElementById('secondary_text').innerHTML = result;
+                # document.getElementById('secondary_text').html = status;
+                # // $('#secondary_text').innerHTML = result;
+            
+            ,"script"
+        );    
+
+    
 #START:ready
 $(document).ready ->
   initializeMap()
@@ -91,8 +120,29 @@ $(document).ready ->
   $("#saveToPng").live 'click', saveAsPNG
   $("#reSlice").live 'click', reSlice
   $("#scale").live 'change', reSlice
-  # TODO: figure how to call showValue from slices
-  # $("#slice_count").live( 'change', showValue(this.value, &quot;slices&quot;); reSlice)
+  # TODO: html still contains showValue call.  Good to figure out how
+  # to do that here as well...
+  $("#slice_count").live( 'change', reSlice)
+  
+  # Add a button at bottom to test cgi
+  
+  cgi_test = document.createElement("input")
+  cgi_test.type = "button"
+  cgi_test.value = "my cgi_test"
+  cgi_test.id = "cgi_test"
+  
+  # And text that will be changed by the cgi
+  test_text =  document.createElement("span")
+  test_text.id = "test_text"
+  test_text.innerHTML = "test_text"
+  
+  # NOTE:  $("#id") form sometimes works, and sometimes not.  What gives? -ETJ 18 Feb 2012
+  # $("#slice_controls").appendChild(cgi_test);
+  sc = document.getElementById('slice_controls')
+  sc.appendChild( cgi_test)
+  sc.appendChild( test_text)
+  $("#cgi_test").live('click', getDemData)
+  
   
 
 #END:ready
