@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+        <title>cgi_test_jquery</title>
+        <script type="text/javascript" src="jquery-1.5.2.min.js"></script>
+        <script type="text/javascript" charset="utf-8">
+            function cgi_test(){
+                // $.get('cgi-bin/dem_extractor.cgi', {},
+                //         function(data) {
+                //             $('#test_text').innerHTML = data;
+                //         }, 
+                //         alert(data));      
+                // $.ajax({
+                //       url: 'cgi-bin/dem_extractor.cgi',
+                //       data: { name: "John", time: "2pm" },
+                //       // success: function(data){alert(data);}
+                //     });      
+                var input = {lat: 40.02, long: 118.5, lat_span: 0.5, long_span:0.5, lat_samples: 20, long_samples:30};
+                $.get('cgi-bin/dem_extractor.cgi', 
+                        input, 
+                        function(result,status,xhr){
+                            alert(status);
+                            // $('#test_text').html = status;
+                            document.getElementById('test_text').html = status;
+                            // document.getElementById('secondary_text').innerHTML = result;
+                            document.getElementById('secondary_text').html = status;
+                            // $('#secondary_text').innerHTML = result;
+                        },
+                        "script"
+                    );
+                // $.get('cgi-bin/dem_extractor.cgi', function(data){alert(data)});
+                // $.get('cgi-bin/dem_extractor.cgi');
+                // $('test_text').innerHTML = big_list[2];
+            }
+        </script>
+    </head>
+    <body id="cgi_test_jquery" onload="">
+        <div id="test_text">
+            Original Text
+        </div><br>
+        <div id="secondary_text"></div>
+        <button type="button" id="update_time" onclick="cgi_test()">Update time</button><br>
+            
+    </body>
+</html>
