@@ -1,10 +1,46 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <math.h>
 #include <stdarg.h>
 
-// # TODO: Make LatLng region class so I don't have to pass so many args around.
+#include "dem_extractor.h"
+LatLng::LatLng():lat(0), lng(0){}
+LatLng::LatLng( float lat_in, float lng_in): lat(lat_in), lng(lng_in){}
+
+LatLngRegion::LatLngRegion( LatLng min_lat_lng_in, LatLng max_lat_lng_in){
+    // correct our min/max values so they're in order.  
+    min_lat = MIN(min_lat_lng_in.lat, max_lat_lng_in.lat);
+    max_lat = MAX(min_lat_lng_in.lat, max_lat_lng_in.lat);
+              
+    min_lng = MIN(min_lat_lng_in.lng, max_lat_lng_in.lng);
+    max_lng = MAX(min_lat_lng_in.lng, max_lat_lng_in.lng);  
+    
+    min_lat_lng = LatLng( min_lat, min_lng);
+    max_lat_lng = LatLng( max_lat, max_lng);
+}
+bool LatLngRegion::contains_point( LatLng lat_lng){
+    return (lat_lng.lat >= min_lat && lat_lng.lat <= max_lat &&
+            lat_lng.lng >= min_lng && lat_lng.lng <= max_lng );
+}
+bool LatLngRegion::contains_region( LatLngRegion other_region){
+    LatLng corners[4] = {LatLng(min_lat, min_lng), LatLng(min_lat, max_lng),
+                         LatLng(max_lat, min_lng), LatLng(max_lat, max_lng)};
+    int i;
+    for( i = 0; i < 4; i += 1 ){
+        if (!contains_point( corners[i])){ return false;}
+    }
+    return true;             
+}
+
+
+DemRegion::DemRegion( LatLngRegion region_in):
+region( region_in)
+{
+    // As a first pass, let's give DemRegions the responsibility
+    // for knowing where their data will come from.  
+    // Another approach might put that logic in a separate place.
+    
+}
 
 #define MAX_W 255
 #define MAX_H 255
@@ -19,26 +55,30 @@ int main_js (int argc, char const *argv[]) {
 
     char *query_string;
     query_string = getenv("QUERY_STRING");
-    // if( query_string ==NULL) {
-    //     printf( "No data sent\n");
-    // }
-    // else {
-    //     printf("var QUERY_STRING = %s;\n",query_string);
-    // }
+    
+    if( query_string ==NULL) {
+        printf( "No data stored in env['QUERY_STRING']\n");
+        return -1;
+    }
+    else {
+        // printf("var QUERY_STRING = %s;\n",query_string);
+    }
 
     // parse values from a string like this:
     // "QUERY_STRING = lat=40.02&lng=118.34&lat_span=0.5&lng_span=0.5&lat_samples=20&lng_samples=30;
-    sscanf( query_string, "lat=%f&lng=%f&lat_span=%f&lng_span=%f&lat_samples=%d&lng_samples=%d",\
+    sscanf( query_string, "lat=%f&long=%f&lat_span=%f&long_span=%f&lat_samples=%d&long_samples=%d",\
         &lat, &lng, &lat_span, &lng_span, &lat_samples, &lng_samples);
 
+    // I haven't yet figured out how to set javascript variables using $.get().
+    // The goal is to be able to say (in the javascript code):  
+    // var big_list = $.get("cgi-bin/dem_extractor.cgi") 
+    // and have the cgi return valid JS, like the list below.  That doesn't work
+    // yet. -ETJ 19 Feb 2012
     if (0){
         
         printf("[0, 1, 2]\n");
         return 0;
     }
-
-    time_t t;
-    time(&t);
 
     printf( "var lat =  %.3f;\n", lat);
     printf( "var lng =  %.3f;\n", lng);
