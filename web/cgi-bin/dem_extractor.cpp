@@ -32,16 +32,47 @@ bool LatLngRegion::contains_region( LatLngRegion other_region){
     return true;             
 }
 
-
+// First constructor: if only given a map region, find data from 
+// cached DEM files.
 DemRegion::DemRegion( LatLngRegion region_in):
 region( region_in)
 {
-    // As a first pass, let's give DemRegions the responsibility
+    // As a first pass, let's give DemRegion the responsibility
     // for knowing where their data will come from.  
     // Another approach might put that logic in a separate place.
     
+    // Find a file(s) that contain the region we care about
+    // Todo: later, this should identify correct scale of data to 
+    // use. A map of North America should use much less granular data
+    // than a map of a single mountain.
+    
+    
+}
+int DemRegion::hgt_filenames_for_region( LatLngRegion reg, char **filename_list)
+{
 }
 
+// Second constructor: If given an existing DemRegion as well as a sub-region,
+// fill samples from the super_region.
+DemRegion::DemRegion( DemRegion super_region, LatLngRegion sub_region, 
+                        int sub_lat_samples, int sub_lng_samples):
+region( sub_region)
+{
+    // Get our samples from super_region, subsampled
+}                        
+void DemRegion::print_samples_json(){
+    int x,y;
+    signed short *samp = buf;
+    printf("[ ");
+    for( y = 0; y < lat_samples; y += 1 ){
+        printf("[ ");
+        for( x = 0; x < lng_samples-1; x += 1 ){
+            printf("%6d, ", *buf++);
+        }
+        printf("%6d ],\n",*buf++);
+    }
+    printf("]\n");
+}
 #define MAX_W 255
 #define MAX_H 255
 
@@ -98,6 +129,8 @@ float linear_interp( float a, float b, float ratio){
 float scale( float val, float src_min, float src_max, float dest_min, float dest_max){
     return linear_interp( dest_min, dest_max, (val-src_min)/(src_max-src_min));
 }
+
+
 signed short *fill_src_samples( float dest_min_lat, float dest_max_lat, 
                                 float dest_min_lng, float dest_max_lng,
                                 float *src_min_lat, float *src_max_lat,

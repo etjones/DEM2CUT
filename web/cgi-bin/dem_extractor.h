@@ -32,6 +32,9 @@ class DemRegion{
       int lng_samples;
       signed short *buf;  
       DemRegion( LatLngRegion region_in);
+      
+      void print_samples_json();
+      
 };
 #endif /* end of include guard: DEM_EXTRACTOR_H */
 
