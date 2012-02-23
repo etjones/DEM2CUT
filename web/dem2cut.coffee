@@ -81,35 +81,55 @@ getDemData = ->
     span = window.map.getBounds().toSpan()
     ll = window.map.getCenter()
     
-    # TODO: long_samples should be defined on a more global level
-    input = 
-        lat: ll.lat()
-        long: ll.lng()
-        lat_span: span.lat()
-        long_span: span.lng()
-        lat_samples: slices()
-        long_samples: 50
-         
+    testing=true
+    if testing
+        # lat=0.62&long=16.47&lat_span=0.15&long_span=0.15&lat_samples=20&long_samples=30&dem_file_dir=%2FUsers%2Fjonese%2FDesktop%2F
+        input = { 
+            lat: 0.62
+            long: 16.47
+            lat_span: 0.15
+            long_span: 0.15
+            lat_samples: slices()
+            long_samples: 30
+            # Local testing:
+            dem_file_dir: "/Users/jonese/Desktop/"
+        }
+    else
+        # TODO: lng_samples should be defined on a more global level
+        input = { 
+            lat: ll.lat()
+            long: ll.lng()
+            lat_span: span.lat()
+            long_span: span.lng()
+            lat_samples: slices()
+            long_samples: 50
+            # For use on WebFaction
+            dem_file_dir: "/home/etjones/webapps/htdocs/DEM2CUT/dems/SRTM_90m_global/"
+        }
+    
+    success = (result,status,xhr) ->
+                alert( result)
+    #             # For still undetermined reasons, none of the lines below
+    #             # seem to do anything.
+    #             # // $('#test_text').html = status;
+    #             # document.getElementById('test_text').html = status;
+    #             # // document.getElementById('secondary_text').innerHTML = result;
+    #             # document.getElementById('secondary_text').html = status;
+    #             # // $('#secondary_text').innerHTML = result;,
+    
     # This should eventually return a big list:
     # something like: var big_list = [ [100 data points], []*rows lists];
     # For now it's just proof of concept that we can get the right data
-    # from Google maps and to the CGI
-    $.get('cgi-bin/dem_extractor.cgi', 
-            input, 
-            (result,status,xhr) ->
-                alert( result)
-                # For still undetermined reasons, none of the lines below
-                # seem to do anything.
-                # // $('#test_text').html = status;
-                # document.getElementById('test_text').html = status;
-                # // document.getElementById('secondary_text').innerHTML = result;
-                # document.getElementById('secondary_text').html = status;
-                # // $('#secondary_text').innerHTML = result;
-            
-            ,"script"
-        );    
-
+    # from Google maps and to the CGI    
+    $.ajax({
+      url: 'cgi-bin/dem_extractor.cgi',
+      data: input,
+      success: success,
+      cache: true, 
+      dataType: "json"
+    });
     
+
 #START:ready
 $(document).ready ->
   initializeMap()

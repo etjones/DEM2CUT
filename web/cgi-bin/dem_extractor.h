@@ -10,7 +10,7 @@ public:
     float lng;
     LatLng( float lat_in, float lng_in);
     LatLng();
-
+    std::string srtm_hgt_filename();
 };
 
 class LatLngRegion{
@@ -31,11 +31,21 @@ class DemRegion{
       int lat_samples;
       int lng_samples;
       signed short *buf;  
-      DemRegion( LatLngRegion region_in);
-      
+      DemRegion( LatLngRegion region_in, int lat_samples_in, int lng_samples_in);
+      ~DemRegion()      ;
+      int read_from_file_sparse();      
       void print_samples_json();
       
 };
+// ===========
+// = Helpers =
+// = ------- =
+int main_js (int argc, char const *argv[]);
+float linear_interp( float a, float b, float ratio);
+float scale( float val, float src_min, float src_max, float dest_min, float dest_max);
+void myReplace(std::string& str, const std::string& oldStr, const std::string& newStr);
+inline short fread_short_bigendian( FILE *f);
+
 #endif /* end of include guard: DEM_EXTRACTOR_H */
 
 
