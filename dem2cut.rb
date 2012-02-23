@@ -812,6 +812,13 @@ def parse_args
         opts.on("-v", '--vertical_scale FLOAT',Float,"Vertical scale factor"){|vertical_scale|
             options[:vertical_scale] = vertical_scale
         }
+        
+        # This displays the help screen, all programs are
+        # assumed to have this option.
+        opts.on( '-h', '--help', 'Display this screen' ) do
+            puts opts
+            exit
+        end        
    }
    
    ARGV << '-h' if ARGV.empty?
