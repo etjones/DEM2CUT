@@ -814,7 +814,7 @@ def parser
         }
    }
    
-   if ARGV.length == 0: ARGV << "-h" end
+   ARGV << '-h' if ARGV.empty?
    optparse.parse!
    
    puts options
