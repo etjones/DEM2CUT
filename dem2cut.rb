@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby -KU
 require 'rubygems'
 require 'rasem'
-
+require 'optparse'
 # ================
 # = P G M  Utils =
 # = ------------ =
@@ -234,9 +234,9 @@ end
 class DemData
     attr_reader :region, :data
     def initialize( region, data=nil, should_download=true)
-        """DemData represents a rectangular region on earth,
-        and can be queried about the elevation at any particular point
-        within its bounds""" # !> unused literal ignored
+        # DemData represents a rectangular region on earth,
+        # and can be queried about the elevation at any particular point
+        # within its bounds
         @region = nil
         @data = data # for now, assume data is a 2D array of elevations
         set_region( region)
@@ -432,10 +432,9 @@ class DemPaperCut
         cut_width=133, cut_height=133,
         num_sections=25, x_samples=100,
         bot_margin=8.5, top_margin=18.5)
-        """ Using a DemData instance, create a pattern of paper cuts & folds
-        sufficient to represent DemData's region
+        # Using a DemData instance, create a pattern of paper cuts & folds
+        # sufficient to represent DemData's region
 
-        """ 
         # TODO: margins & section separation need to be adaptive
         # to the data. If elevation is significantly different between
         # one section and the next, cut lines can overlap each other
@@ -759,8 +758,71 @@ def main
     end
 end
 
+def parser
+   options = {} 
+   optparse = OptionParser.new {|opts|
+       opts.banner = "Usage: #{$0}"
+       
+       options[:link] = nil
+       opts.on( '-l', '--link LINK', 'Google maps link, showing an '+ 
+                        'area within a single 1x1 degree square'){|link|
+           options[:link] = link
+       }
+       
+       options[:dem_file] = nil
+       df_exts =  ['.hgt','.pgm','.asc']
+       opts.on('-d', '--dem_file [DEM_FILE]', "DEM file. Extension must be one "+
+                    "of [#{df_exts.join(', ')}]"){|dem_file|
+            next unless dem_file
+            if df_exts.include?(File.extname( dem_file).downcase) and File.exist?( dem_file)
+                options[:dem_file] = dem_file
+            else
+                puts("Can't find dem_file '#{dem_file}' or it has the wrong extension.\n",
+                     "Dem_file extension must be one of #{df_exts.join(', ')}")
+                # exit here?
+                return 
+            end
+        }
+       
+        options[:include_frame_cut] = false
+        opts.on('-f', '--frame', 'If specified, output a second image for use '+
+                'as the frame for the cut pattern'){
+            options[:include_frame_cut] = true
+        }
+        
+        options[:slices] = 15
+        opts.on('-s', '--slices NUM', Integer, 'Number of slices in cut pattern'){|slices|
+            options[:slices] = slices
+        }
+        
+        options[:points_per_slice] = 50
+        opts.on('-p', '--points_per_slice NUM', Integer, 'Number of data points in each slice'){|points_per_slice|
+            options[:points_per_slice] = points_per_slice
+        }        
+        
+        options[:cardinal_dir] = "N"
+        cardinals = ["N","S","E","W"]
+        opts.on('-c', '--cardinal_dir [N|S|E|W]', "Cardinal direction"){|dir|
+            if cardinals.include?( dir.upcase! )
+                options[:cardinal_dir] = dir
+            end
+        }
+        
+        options[:vertical_scale] = 2.0
+        opts.on("-v", '--vertical_scale FLOAT',Float,"Vertical scale factor"){|vertical_scale|
+            options[:vertical_scale] = vertical_scale
+        }
+   }
+   
+   if ARGV.length == 0: ARGV << "-h" end
+   optparse.parse!
+   
+   puts options
+end
+
 if __FILE__ == $0
-    main
+    parser
+    # main
 end
 
 
