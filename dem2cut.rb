@@ -758,7 +758,7 @@ def main
     end
 end
 
-def parser
+def parse_args
    options = {} 
    optparse = OptionParser.new {|opts|
        opts.banner = "Usage: #{$0}"
@@ -816,12 +816,15 @@ def parser
    
    ARGV << '-h' if ARGV.empty?
    optparse.parse!
-   
-   puts options
+   options
+end
+def cli_main( args_dict)
+    # TODO: write this
 end
 
 if __FILE__ == $0
-    parser
+    args_dict = parse_args
+    cli_main( args_dict)
     # main
 end
 
