@@ -110,19 +110,13 @@ int DemRegion::read_from_file_sparse(){
     
     signed short *tmp_buf = (signed short *)malloc( dst_lat_samples*dst_lng_samples*4*bps);
     
-
-    
-    // TODO: dem file location should be passed in as part of CGI script
-    // std::string file_dir = "../../dems/SRTM_90m_global/";
     std::string filename = gDemFileDir + region.min_lat_lng.srtm_hgt_filename();
     FILE *f = fopen( filename.c_str(), "r");
-    // ETJ DEBUG
     
     if (!f){
         printf( "Failed to read from file:\n\t \"%s\"\n", filename.c_str());
         return -1;
     }
-    // END DEBUG */
         
     // Arguments represent two regions of different sizes with different 
     // sampling rates.  
