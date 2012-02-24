@@ -13,7 +13,7 @@
         </style>
         <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyB7P8uxpUhIFuOuFCoLAJTRDn0md7UkeS0&sensor=false" ></script>
         <script type="text/javascript" src="coffee-script.js"></script>
-        <script type="text/javascript" src="jquery-1.5.2.min.js"></script>
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
         <script type="text/coffeescript" src="dem2cut.coffee"></script>
         <script type="text/javascript">
             function showValue(newValue, id){
@@ -32,7 +32,7 @@
         <div id="cut_side" >
             <canvas id="cut_canvas" width="266" height="266"></canvas>            
             <div id="slice_controls">
-                Location: <br>  <span id="lat_long">(?, ?)</span><br>
+                Location: <br>  <span id="lat_lng">(?, ?)</span><br>
                 <form action="submit_slice">
                     Slices:<input type="range" name="slice_count" 
                             value="10" min="6" max="25" id="slice_count"
