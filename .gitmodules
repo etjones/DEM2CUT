@@ -1,0 +1,3 @@
+[submodule "ruby/rasem"]
+	path = ruby/rasem
+	url = git://github.com/etjones/rasem.git
