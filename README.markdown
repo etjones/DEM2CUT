@@ -4,14 +4,14 @@ Dem2Cut is a project initiated by Proessor Yoshinobu Miyamoto.  The intent is to
 
 # Examples 
 (SVG files can be zoomed in the browser)  
-[Miyamoto's original model](examples/fuji-model-full-mt-1.pdf)  
-[Miyamoto's original base](examples/fuji-model-full-base-simple.pdf)  
-[Programmatically generated Fuji](examples/fuji_1.svg)  
-[Programmatically generated Fuji](examples/fuji_1_frame.svg)  
-[Mt. Hood, a volcanic peak near Portland, Oregon, USA](examples/hood_1.svg)  
-[Mt. Rainier, a volcanic peak near Seattle, Washington, USA](examples/rainier_1.svg)  
-[Steens Mountain, a fault-block mountain in barren land in SE Oregon, USA](examples/steens_1.svg)  
-[Cosine Waves](examples/cosine_1.svg)  
+[Miyamoto's original model](DEM2CUT/ples/fuji-model-full-mt-1.pdf)  
+[Miyamoto's original base](DEM2CUT/ples/fuji-model-full-base-simple.pdf)  
+[Programmatically generated Fuji](DEM2CUT/ples/fuji_1.svg)  
+[Programmatically generated Fuji](DEM2CUT/ples/fuji_1_frame.svg)  
+[Mt. Hood, a volcanic peak near Portland, Oregon, USA](DEM2CUT/ples/hood_1.svg)  
+[Mt. Rainier, a volcanic peak near Seattle, Washington, USA](DEM2CUT/ples/rainier_1.svg)  
+[Steens Mountain, a fault-block mountain in barren land in SE Oregon, USA](DEM2CUT/ples/steens_1.svg)  
+[Cosine Waves](DEM2CUT/ples/cosine_1.svg)  
 
 ## Current Implementations
 
