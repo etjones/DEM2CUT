@@ -161,18 +161,13 @@ int DemRegion::read_from_file_sparse(){
         // that a simple average will be accurate enough.  Depending on the scale
         // of maps used, this could cause significant errors, though. -ETJ 18 Feb 2012
         for( row = 0; row < 2; row += 1 ){
-            // src_ptr = src_ptr + (lat_index + row)*src_lng_samples;
             for( x = 0; x < dst_lng_samples; x += 1 ){
                 src_lng = min_x_index + x*lng_index_gap;
                 lng_index = floor( src_lng);
-    /* ETJ DEBUG
-                printf( "File f address is: %ld\n", (long)f);
-    return 1;
-    // END DEBUG */                          
+                        
                 file_addy =  (src_lng_samples*(lat_index+row) + lng_index)*bps;
                 fseek( f, file_addy, SEEK_SET);
-                // fread( tmp_ptr, 2, bps, f);
-                // tmp_ptr += 2;
+
                 *tmp_ptr++ = fread_short_bigendian( f);
                 *tmp_ptr++ = fread_short_bigendian( f);
                 
@@ -208,7 +203,7 @@ void DemRegion::print_samples_json(){
         for( x = 0; x < lng_samples-1; x += 1 ){
             printf("%6d, ", *samp++);
         }
-        printf("%6d ],\n",*samp++);
+        printf("%6d ]%c\n",*samp++, (y<lat_samples-1 ? ',': ' '));
     }
     printf("]\n");
 }
@@ -242,10 +237,10 @@ int main_js (int argc, char const *argv[]) {
     }
 
     // parse values from a string like this:
-    // <DEBUG> export QUERY_STRING="lat=0.62&long=16.47&lat_span=0.15&long_span=0.15&lat_samples=10&long_samples=30&dem_file_dir=%2FUsers%2Fjonese%2FSites%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F"
-    // <REMOTE>export QUERY_STRING="lat=40.02&long=118.34&lat_span=0.5&long_span=0.5&lat_samples=20&long_samples=30&dem_file_dir=%2Fhome%2Fetjones%2Fwebapps%2Fhtdocs%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F"
-    sscanf( query_string, "lat=%f&long=%f&lat_span=%f&long_span=%f&"\
-           "lat_samples=%d&long_samples=%d&dem_file_dir=%s",\
+    // <DEBUG> export QUERY_STRING="lat=0.62&lng=16.47&lat_span=0.15&lng_span=0.15&lat_samples=10&lng_samples=30&dem_file_dir=%2FUsers%2Fjonese%2FSites%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F"
+    // <REMOTE>export QUERY_STRING="lat=40.02&lng=118.34&lat_span=0.5&lng_span=0.5&lat_samples=20&lng_samples=30&dem_file_dir=%2Fhome%2Fetjones%2Fwebapps%2Fhtdocs%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F"
+    sscanf( query_string, "lat=%f&lng=%f&lat_span=%f&lng_span=%f&"\
+           "lat_samples=%d&lng_samples=%d&dem_file_dir=%s",\
            &lat, &lng, &lat_span, &lng_span, &lat_samples, &lng_samples, (char *)&dem_file_dir);        
 
     if (0){
@@ -263,8 +258,7 @@ int main_js (int argc, char const *argv[]) {
     gDemFileDir = dem_file_dir;
     myReplace( gDemFileDir, "%2F", "/");
     myReplace( gDemFileDir, "%2f", "/"); 
-    
-    // printf("$('#test_text').html(%d);\n",lng_samples);
+
     
     // The actual magic
     LatLng min_ll( lat-lat_span, lng-lng_span);
@@ -272,9 +266,6 @@ int main_js (int argc, char const *argv[]) {
     LatLngRegion llr( min_ll, max_ll);
     DemRegion reg( llr, lat_samples, lng_samples);
     reg.print_samples_json();
-    
-    // FIXME: we print out a javascript/json formatted array, but our 
-    // javascript code doesn't seem to like it.  What next?
     
     return 0;
 }
