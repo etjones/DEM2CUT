@@ -1,0 +1,176 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="216" height="279" version="1.1"
+  xmlns="http://www.w3.org/2000/svg">
+<g transform="translate( 24.0, 73)" >
+<path d="M14.1666666666667,35.75       a2.5,2.5 0 0,0 0.0,-5.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M14.1666666666667,102.25       a2.5,2.5 0 0,0 0.0,-5.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M153.833333333333,30.75       a2.5,2.5 0 0,0 0.0,5.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M153.833333333333,97.25       a2.5,2.5 0 0,0 0.0,5.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="0,27.3760126950361 0,0 168.0,0 168.0,27.3760126950361" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="0,105.623987304964 0,133 168.0,133 168.0,105.623987304964" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<g transform="translate( 0, 27.3760126950361)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 32.2592110023646)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 37.1424093096932)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 42.0256076170217)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 46.9088059243502)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 51.7920042316787)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 56.6752025390072)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 61.5584008463357)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 66.4415991536643)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 71.3247974609928)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 76.2079957683213)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 81.0911940756498)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 85.9743923829783)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 90.8575906903068)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 95.7407889976353)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="0" y1="5.5" x2="0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<line x1="168.0" y1="5.5" x2="168.0" y2="4.88319830732852" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<g transform="translate( 0, 100.623987304964)"  style="stroke:#7f3f00;fill:none;stroke-width:0.5;">
+<path d="M0.0,-3.06161699786838e-16       a2.5,2.5 0 0,0 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="2.5,2.5 7.25,2.5 7.25,3.0 2.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M2.5,3.0       a2.5,2.5 0 0,0 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M168.0,0.0       a2.5,2.5 0 0,1 -2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<polyline points="165.5,2.5 160.75,2.5 160.75,3.0 165.5,3.0" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+<path d="M165.5,3.0       a2.5,2.5 0 0,1 2.5,2.5" style="stroke:#7f3f00;fill:none;stroke-width:0.5;"/>
+</g>
+<line x1="12.5" y1="0" x2="12.5" y2="133" style="stroke:#007299;fill:none;stroke-width:0.5;"/>
+<line x1="17.5" y1="0" x2="17.5" y2="133" style="stroke:#007299;fill:none;stroke-width:0.5;"/>
+<line x1="150.5" y1="0" x2="150.5" y2="133" style="stroke:#007299;fill:none;stroke-width:0.5;"/>
+<line x1="155.5" y1="0" x2="155.5" y2="133" style="stroke:#007299;fill:none;stroke-width:0.5;"/>
+</g>
+</svg>
