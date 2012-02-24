@@ -110,12 +110,20 @@ int DemRegion::read_from_file_sparse(){
     
     signed short *tmp_buf = (signed short *)malloc( dst_lat_samples*dst_lng_samples*4*bps);
     
+
     
     // TODO: dem file location should be passed in as part of CGI script
     // std::string file_dir = "../../dems/SRTM_90m_global/";
     std::string filename = gDemFileDir + region.min_lat_lng.srtm_hgt_filename();
     FILE *f = fopen( filename.c_str(), "r");
+    // ETJ DEBUG
     
+    if (!f){
+        printf( "Failed to read from file:\n\t \"%s\"\n", filename.c_str());
+        return -1;
+    }
+    // END DEBUG */
+        
     // Arguments represent two regions of different sizes with different 
     // sampling rates.  
     // For instance: 
@@ -142,8 +150,7 @@ int DemRegion::read_from_file_sparse(){
     float src_lat, src_lng; 
     int lat_index, lng_index;
     
-    
-    
+        
     signed short *tmp_ptr = tmp_buf;
     long file_addy;
     for( y = 0; y < dst_lat_samples; y += 1 ){
@@ -164,13 +171,18 @@ int DemRegion::read_from_file_sparse(){
             for( x = 0; x < dst_lng_samples; x += 1 ){
                 src_lng = min_x_index + x*lng_index_gap;
                 lng_index = floor( src_lng);
-                
+    /* ETJ DEBUG
+                printf( "File f address is: %ld\n", (long)f);
+    return 1;
+    // END DEBUG */                          
                 file_addy =  (src_lng_samples*(lat_index+row) + lng_index)*bps;
                 fseek( f, file_addy, SEEK_SET);
                 // fread( tmp_ptr, 2, bps, f);
                 // tmp_ptr += 2;
                 *tmp_ptr++ = fread_short_bigendian( f);
                 *tmp_ptr++ = fread_short_bigendian( f);
+                
+      
             }
         }
     }
@@ -206,7 +218,7 @@ void DemRegion::print_samples_json(){
     }
     printf("]\n");
 }
-#define MAX_W 255
+#define MAX_W 255 
 #define MAX_H 255
 
 inline short fread_short_bigendian( FILE *f){
@@ -221,10 +233,9 @@ int main_js (int argc, char const *argv[]) {
     int lat_samples, lng_samples;    
     char dem_file_dir[128];
     
-    // Header, so Apache accepts our info
-    // printf("content-type:application/json\n\n");
-    printf("content-type:application/x-javascript\n\n");    
-    
+    // Header
+    printf("content-type:application/x-javascript\n\n");
+
     char *query_string;
     query_string = getenv("QUERY_STRING");
     
@@ -235,25 +246,15 @@ int main_js (int argc, char const *argv[]) {
     else {
         // printf("var QUERY_STRING = %s;\n",query_string);
     }
-    
+
     // parse values from a string like this:
-    // "QUERY_STRING = lat=40.02&long=118.34&lat_span=0.5&long_span=0.5&lat_samples=20
-    // &long_samples=30&dem_file_dir=%2Fhome%2Fetjones%2Fwebapps%2Fhtdocs%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F;
+    // <DEBUG> export QUERY_STRING="lat=0.62&long=16.47&lat_span=0.15&long_span=0.15&lat_samples=10&long_samples=30&dem_file_dir=%2FUsers%2Fjonese%2FSites%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F"
+    // <REMOTE>export QUERY_STRING="lat=40.02&long=118.34&lat_span=0.5&long_span=0.5&lat_samples=20&long_samples=30&dem_file_dir=%2Fhome%2Fetjones%2Fwebapps%2Fhtdocs%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F"
     sscanf( query_string, "lat=%f&long=%f&lat_span=%f&long_span=%f&"\
            "lat_samples=%d&long_samples=%d&dem_file_dir=%s",\
-           &lat, &lng, &lat_span, &lng_span, &lat_samples, &lng_samples, (char *)&dem_file_dir);
-    
-    // I haven't yet figured out how to set javascript variables using $.get().
-    // The goal is to be able to say (in the javascript code):  
-    // var big_list = $.get("cgi-bin/dem_extractor.cgi") 
-    // and have the cgi return valid JS, like the list below.  That doesn't work
-    // yet. -ETJ 19 Feb 2012
+           &lat, &lng, &lat_span, &lng_span, &lat_samples, &lng_samples, (char *)&dem_file_dir);        
+
     if (0){
-        printf("[0, 1, 2]\n");
-        return 0;
-    }
-    
-    if (0){       
         printf( "var lat =  %.3f;\n", lat);
         printf( "var lng =  %.3f;\n", lng);
         printf( "var lat_span =  %.3f;\n", lat_span);
@@ -264,22 +265,26 @@ int main_js (int argc, char const *argv[]) {
     }
     
     // dem_file_dir gets passed with slashes subbed for %2F, so sub them back
+    // Also sub for %2f in case these get passed through downcased by some browser.
     gDemFileDir = dem_file_dir;
     myReplace( gDemFileDir, "%2F", "/");
-    myReplace( gDemFileDir, "%2f", "/"); // in case these get passed through downcased
-    // printf( "var dem_file_dir (new)=  %s;\n", gDemFileDir.c_str());
+    myReplace( gDemFileDir, "%2f", "/"); 
     
-    // printf("document.getElementById('test_text').innerHTML = %ld;\n",t);
+    // printf("$('#test_text').html(%d);\n",lng_samples);
+    
+    // The actual magic
     LatLng min_ll( lat-lat_span, lng-lng_span);
     LatLng max_ll( lat+lat_span, lng+lng_span);
     LatLngRegion llr( min_ll, max_ll);
     DemRegion reg( llr, lat_samples, lng_samples);
+    reg.print_samples_json();
     
-    // reg.print_samples_json();
-    printf("\n");
-    printf("$('#test_text').html(%d);\n",lng_samples);
+    // FIXME: we print out a javascript/json formatted array, but our 
+    // javascript code doesn't seem to like it.  What next?
+    
     return 0;
 }
+
 void myReplace(std::string& str, const std::string& oldStr, const std::string& newStr)
 {
     size_t pos = 0;

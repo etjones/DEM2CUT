@@ -9,7 +9,7 @@ initializeMap = ->
 outlineCanvas = ->
     window.canvas=document.getElementById("cut_canvas");
     window.slice_ctx= window.canvas.getContext("2d");
-    reSlice()
+    # reSlice()
 
 showLatLong = ->
     # Show lat/long on slice side:
@@ -28,7 +28,7 @@ showLatLong = ->
     # $('#lat_long').innerHTML( out_s)
 
 saveAsPNG = ->
-    # TODO: Better to open a new tab with this?          
+    # FIXME: Better to open a new tab with this?          
     window.location = window.canvas.toDataURL("image/png");  
 
 showValue = (newValue, id)  -> 
@@ -40,7 +40,11 @@ reSlice = ->
     
     w = window.canvas.width
     h = window.canvas.height
-    arr = cosArr( Math.floor(w/3), slices() )    
+    # arr = cosArr( Math.floor(w/3), slices() )    
+    arr = getDemData()
+    # ETJ DEBUG
+    alert "getDemData returned: "+ arr
+    # END DEBUG
     c = window.slice_ctx
     # Blank the whole context first
     c.fillStyle="white"
@@ -83,7 +87,7 @@ getDemData = ->
     
     testing=true
     if testing
-        # lat=0.62&long=16.47&lat_span=0.15&long_span=0.15&lat_samples=20&long_samples=30&dem_file_dir=%2FUsers%2Fjonese%2FDesktop%2F
+        # lat=0.62&long=16.47&lat_span=0.15&long_span=0.15&lat_samples=10&long_samples=30&dem_file_dir=%2FUsers%2Fjonese%2FSites%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F
         input = { 
             lat: 0.62
             long: 16.47
@@ -92,7 +96,7 @@ getDemData = ->
             lat_samples: slices()
             long_samples: 30
             # Local testing:
-            dem_file_dir: "/Users/jonese/Desktop/"
+            dem_file_dir: "/Users/jonese/Sites/DEM2CUT/dems/SRTM_90m_global/"
         }
     else
         # TODO: lng_samples should be defined on a more global level
@@ -127,8 +131,8 @@ getDemData = ->
       success: success,
       error: success,
       cache: true, 
-      # dataType: "json"
     });
+    
     
 
 #START:ready
