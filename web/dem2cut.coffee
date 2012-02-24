@@ -108,7 +108,7 @@ getDemData = ->
         }
     
     success = (result,status,xhr) ->
-                alert( result)
+                alert( status + ": " + result )
     #             # For still undetermined reasons, none of the lines below
     #             # seem to do anything.
     #             # // $('#test_text').html = status;
@@ -125,8 +125,9 @@ getDemData = ->
       url: 'cgi-bin/dem_extractor.cgi',
       data: input,
       success: success,
+      error: success,
       cache: true, 
-      dataType: "json"
+      # dataType: "json"
     });
     
 

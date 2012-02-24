@@ -71,7 +71,7 @@ region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in)
     // For the moment, only handle data that's entirely in a single 1x1 degree
     // file.
     if ( floor( region.min_lat) != floor( region.max_lat)  ||
-        floor( region.min_lng) != floor( region.max_lng) )
+         floor( region.min_lng) != floor( region.max_lng) )
     {
         // Print an error string and exit
         printf( "Unable to view areas on more than one 1x1 degree tile\n");
