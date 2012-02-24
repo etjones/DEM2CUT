@@ -1,7 +1,11 @@
 #!/usr/bin/env ruby -KU
-require 'rubygems'
-require 'rasem'
 require 'optparse'
+
+# Some gymnastics to avoid loading Rasem as a gem, even though it is one.
+module Rasem
+end    
+require File.dirname(__FILE__) + "/rasem/lib/rasem/svg_image.rb"
+
 
 MAX_ELEVATION = 8500
 A4_W, A4_H = 216, 279
