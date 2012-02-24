@@ -1,5 +1,4 @@
 dems/*
 examples
 cached_dem_files
-srtm_index
 web/cgi-bin/*.cgi
