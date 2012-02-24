@@ -2,6 +2,10 @@
 require 'rubygems'
 require 'rasem'
 require 'optparse'
+
+MAX_ELEVATION = 8500
+A4_W, A4_H = 216, 279
+
 # ================
 # = P G M  Utils =
 # = ------------ =
@@ -30,7 +34,7 @@ end
 def pgm_header( width, height, range=255, filetype=5)
     header = %Q{P#{filetype}\n#{width} #{height}\n#{range}\n}
 end
-def pgm_2_8bps( pgm_path, max_elevation=8500)
+def pgm_2_8bps( pgm_path, max_elevation=MAX_ELEVATION)
     filetype, width, height, range, header_bytes = read_pgm_header( pgm_path)
     data = pgm_2_arr( pgm_path, max_elevation)    
     data = scale_2d_arr( data, true, 255, max_elevation)
@@ -39,7 +43,7 @@ def pgm_2_8bps( pgm_path, max_elevation=8500)
 
     write_pgm( file_8bps, data, 255)    
 end
-def pgm_2_arr( pgm_path, max_elevation=8500)
+def pgm_2_arr( pgm_path, max_elevation=MAX_ELEVATION)
    data = []
 
    filetype, width, height, range, header_bytes = read_pgm_header( pgm_path)
@@ -87,7 +91,7 @@ end
 # ===============
 # = H G T Utils =
 # = ----------- =
-def hgt_2_arr( hgt_path, max_elevation=8500)
+def hgt_2_arr( hgt_path, max_elevation=MAX_ELEVATION)
     # SRTM files come in one of two common formats: 3 arc-second (~90m)
     # and 1 arc-second (~30m).  Files are 1 degree square, so 3601 x 3601
     # for 1 arc-second, or 1201 x 1201 for 3 arc-second. 
@@ -130,7 +134,7 @@ end
 # ====================
 # = Arc ASCII  Utils =
 # = ---------------- =
-def arc_ascii_2_arr( arc_path, max_elevation=8500)
+def arc_ascii_2_arr( arc_path, max_elevation=MAX_ELEVATION)
     data = []
     header = read_arc_ascii_header( arc_path)
     return false unless header
@@ -142,7 +146,12 @@ def arc_ascii_2_arr( arc_path, max_elevation=8500)
             data[y] = line.split(" ").map { |e| e.to_i }
         }
     }
-    data
+    # also get the region 
+    ll_min = LatLong.new( yll, xll)
+    ll_max = LatLong.new( yll + h*cellsize, xll + w*cellsize)
+    region = LatLongRegion.new( ll_min, ll_max)
+    
+    [data, region]
 end
 def read_arc_ascii_header( arc_path)
     #     arc ascii header is of the form: 
@@ -330,16 +339,28 @@ class DemData
                     
         return elev
     end
-    def DemData.from_ASTER_pgm( pgm_path, max_elevation = 8500)
+    def DemData.from_ASTER_pgm( pgm_path, max_elevation = MAX_ELEVATION)
          region = LatLongRegion.from_lat_long_str( pgm_path)
          data = pgm_2_arr( pgm_path, max_elevation)
          # TODO: error checking
          DemData.new( region, data)
     end
-    def DemData.from_SRTM_hgt( hgt_path, max_elevation = 8500)
+    def DemData.from_SRTM_hgt( hgt_path, max_elevation = MAX_ELEVATION)
         region = LatLongRegion.from_SRTM_hgt( hgt_path)
         data = hgt_2_arr( hgt_path, max_elevation)
         DemData.new( region, data)
+    end
+    def DemData.from_file( path, max_elevation= MAX_ELEVATION)
+        case File.extname(path).downcase
+        when  '.hgt': 
+            return DemData.from_SRTM_hgt( path, max_elevation) 
+        when '.pgm':
+            return DemData.from_ASTER_pgm( path, max_elevation)
+        when '.asc':
+            # Arc ascii files also contain region info             
+            data, region = arc_ascii_2_arr( path, max_elevation)
+            return DemData.new( region, data, false)
+        end
     end
 end
 class LatLong
@@ -427,11 +448,10 @@ class DemPaperCut
     attr_reader :all_frame_width, :frame_width, :frame_elev
     attr_reader :x_samples
     attr_reader :dem_data
-    A4_W, A4_H = 216, 279
     def initialize( dem_data,orientation=:north, 
-        cut_width=133, cut_height=133,
-        num_sections=25, x_samples=100,
-        bot_margin=8.5, top_margin=18.5)
+                    cut_width=133, cut_height=133,
+                    num_sections=25, x_samples=100,
+                    bot_margin=8.5, top_margin=18.5)
         # Using a DemData instance, create a pattern of paper cuts & folds
         # sufficient to represent DemData's region
 
@@ -705,7 +725,7 @@ class DemPaperCut
     end
 end
 
-def main
+def main_manual_test
     which_region = [:fuji, :hood, :rainier, :steens, :cosine]
     use_subregion = true
     
@@ -757,21 +777,46 @@ def main
         dpc.write_svg( ENV['HOME'] + "/Desktop/test_cut.svg", region, title, true)
     end
 end
+def cli_main( args_dict)
+    keys = [:cardinal_dir, :dem_file, :out_file, :link, :include_frame_cut, 
+            :vertical_scale, :slices, :points_per_slice, :title]
+    cardinal_dir, dem_file, out_file, link, include_frame_cut, vertical_scale, slices, points_per_slice, title = keys.map { |k|  args_dict[k]}   
+    
+    region = LatLongRegion.from_google_maps_link( link)
+    data = nil
+    if dem_file
+        data = DemData.from_file( dem_file) 
+    end
+    dpc = DemPaperCut.new( data, cardinal_dir, 133, 133, slices, points_per_slice)
+    
+    if not out_file
+        out_file = ENV['HOME'] + "/Desktop/#{title || 'cut_pattern'}.svg"
+    end
+    dpc.write_svg( out_file, region, title, include_frame_cut)
+    
+end
 
 def parse_args
    options = {} 
    optparse = OptionParser.new {|opts|
-       opts.banner = "Usage: #{$0}"
+        opts.banner = "Usage: #{$0}"
        
-       options[:link] = nil
-       opts.on( '-l', '--link LINK', 'Google maps link, showing an '+ 
+        # TODO: make :link a mandatory argument
+       
+        options[:link] = nil
+        opts.on( '-l', '--link LINK', 'Google maps link, showing an '+ 
                         'area within a single 1x1 degree square'){|link|
-           options[:link] = link
-       }
+            options[:link] = link
+        }
+        
+        options[:out_file] = nil
+        opts.on('-o', '--out_file OUT_FILE.svg', "Path to output file"){|out_file|
+            options[:out_file] = out_file
+        }        
        
-       options[:dem_file] = nil
-       df_exts =  ['.hgt','.pgm','.asc']
-       opts.on('-d', '--dem_file [DEM_FILE]', "DEM file. Extension must be one "+
+        options[:dem_file] = nil
+        df_exts =  ['.hgt','.pgm','.asc']
+        opts.on('-d', '--dem_file DEM_FILE', "DEM file. Extension must be one "+
                     "of [#{df_exts.join(', ')}]"){|dem_file|
             next unless dem_file
             if df_exts.include?(File.extname( dem_file).downcase) and File.exist?( dem_file)
@@ -782,6 +827,11 @@ def parse_args
                 # exit here?
                 return 
             end
+        }
+        
+        options[:title] = ""
+        opts.on('-t', '--title TITLE', 'Title for SVG'){|title|
+            options[:title] = title
         }
        
         options[:include_frame_cut] = false
@@ -800,11 +850,11 @@ def parse_args
             options[:points_per_slice] = points_per_slice
         }        
         
-        options[:cardinal_dir] = "N"
-        cardinals = ["N","S","E","W"]
+        options[:cardinal_dir] = :north
+        cardinals = ["N" =>:north,"S"=>:south,"E"=>:east,"W"=>:west]
         opts.on('-c', '--cardinal_dir [N|S|E|W]', "Cardinal direction"){|dir|
             if cardinals.include?( dir.upcase! )
-                options[:cardinal_dir] = dir
+                options[:cardinal_dir] = cardinals[dir]
             end
         }
         
@@ -825,14 +875,10 @@ def parse_args
    optparse.parse!
    options
 end
-def cli_main( args_dict)
-    # TODO: write this
-end
 
 if __FILE__ == $0
     args_dict = parse_args
     cli_main( args_dict)
-    # main
 end
 
 
