@@ -817,7 +817,7 @@ end
 def parse_args
    options = {} 
    optparse = OptionParser.new {|opts|
-        opts.banner = "Usage: #{$0}"
+        opts.banner = "Usage: #{File.basename($0)}"
        
         # TODO: make :link a mandatory argument
        
