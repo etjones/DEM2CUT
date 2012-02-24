@@ -7,12 +7,14 @@ initializeMap = ->
     window.map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
 
 outlineCanvas = ->
+    # Set up variables we want global access to
     window.canvas=document.getElementById("cut_canvas");
     window.slice_ctx= window.canvas.getContext("2d");
+    window.slice_arr = cosArr( 30, 10)
     # reSlice()
 
-showLatLong = ->
-    # Show lat/long on slice side:
+showLatLng = ->
+    # Show lat/lng on slice side:
     # Note: When run on page load, ll hasn't been generate yet. 
     # How to wait until it's available?
     ll = window.map.getBounds()
@@ -23,9 +25,9 @@ showLatLong = ->
         out_s = "(#{sw.toUrlValue(2)}, #{ne.toUrlValue(2)})"
     else
         out_s = "( ?, ?)"
-    document.getElementById("lat_long").innerHTML= out_s
+    document.getElementById("lat_lng").innerHTML= out_s
     # Note:  this below doesn't seem to work.  Why?
-    # $('#lat_long').innerHTML( out_s)
+    # $('#lat_lng').innerHTML( out_s)
 
 saveAsPNG = ->
     # FIXME: Better to open a new tab with this?          
@@ -36,21 +38,21 @@ showValue = (newValue, id)  ->
 
 slices = -> parseInt(document.getElementById("slice_count").value, 10)
 reSlice = ->
-    showLatLong()
+    showLatLng()
     
     w = window.canvas.width
     h = window.canvas.height
-    # arr = cosArr( Math.floor(w/3), slices() )    
-    arr = getDemData()
+    # window.slice_arr = cosArr( Math.floor(w/3), slices() )    
+    getDemData()
     # ETJ DEBUG
-    alert "getDemData returned: "+ arr
+    console.log( "getDemData returned array of size (#{window.slice_arr.length}, #{window.slice_arr[0].length})")
     # END DEBUG
     c = window.slice_ctx
     # Blank the whole context first
     c.fillStyle="white"
     c.fillRect( 0,0, w, h)
     c.fillStyle = "black"
-    drawPaths( c, arr, w, h)      
+    drawPaths( c, window.slice_arr, w, h)      
 
 cosArr = (w, h) ->
     arr2d = []
@@ -87,14 +89,14 @@ getDemData = ->
     
     testing=true
     if testing
-        # lat=0.62&long=16.47&lat_span=0.15&long_span=0.15&lat_samples=10&long_samples=30&dem_file_dir=%2FUsers%2Fjonese%2FSites%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F
+        # lat=0.62&lng=16.47&lat_span=0.15&lng_span=0.15&lat_samples=10&lng_samples=30&dem_file_dir=%2FUsers%2Fjonese%2FSites%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F
         input = { 
             lat: 0.62
-            long: 16.47
+            lng: 16.47
             lat_span: 0.15
-            long_span: 0.15
+            lng_span: 0.15
             lat_samples: slices()
-            long_samples: 30
+            lng_samples: 30
             # Local testing:
             dem_file_dir: "/Users/jonese/Sites/DEM2CUT/dems/SRTM_90m_global/"
         }
@@ -102,37 +104,28 @@ getDemData = ->
         # TODO: lng_samples should be defined on a more global level
         input = { 
             lat: ll.lat()
-            long: ll.lng()
+            lng: ll.lng()
             lat_span: span.lat()
-            long_span: span.lng()
+            lng_span: span.lng()
             lat_samples: slices()
-            long_samples: 50
+            lng_samples: 50
             # For use on WebFaction
             dem_file_dir: "/home/etjones/webapps/htdocs/DEM2CUT/dems/SRTM_90m_global/"
         }
     
-    success = (result,status,xhr) ->
-                alert( status + ": " + result )
-    #             # For still undetermined reasons, none of the lines below
-    #             # seem to do anything.
-    #             # // $('#test_text').html = status;
-    #             # document.getElementById('test_text').html = status;
-    #             # // document.getElementById('secondary_text').innerHTML = result;
-    #             # document.getElementById('secondary_text').html = status;
-    #             # // $('#secondary_text').innerHTML = result;,
+    success_ = (result,status,xhr) ->
+        window.slice_arr = result;
     
-    # This should eventually return a big list:
-    # something like: var big_list = [ [100 data points], []*rows lists];
-    # For now it's just proof of concept that we can get the right data
-    # from Google maps and to the CGI    
+    error_response = (result, status, xhr) -> 
+        alert( status + ": " + result + ": " + xhr)        
+    
     $.ajax({
-      url: 'cgi-bin/dem_extractor.cgi',
-      data: input,
-      success: success,
-      error: success,
-      cache: true, 
-    });
-    
+        url:"cgi-bin/dem_extractor.cgi",
+        dataType: 'json',
+        data: input,
+        success: success_,
+        error:   error_response
+    })
     
 
 #START:ready
@@ -155,18 +148,6 @@ $(document).ready ->
   cgi_test.type = "button"
   cgi_test.value = "my cgi_test"
   cgi_test.id = "cgi_test"
-  
-  # And text that will be changed by the cgi
-  test_text =  document.createElement("span")
-  test_text.id = "test_text"
-  test_text.innerHTML = "test_text"
-  
-  # NOTE:  $("#id") form sometimes works, and sometimes not.  What gives? -ETJ 18 Feb 2012
-  # $("#slice_controls").appendChild(cgi_test);
-  sc = document.getElementById('slice_controls')
-  sc.appendChild( cgi_test)
-  sc.appendChild( test_text)
-  $("#cgi_test").live('click', getDemData)
   
   
 
