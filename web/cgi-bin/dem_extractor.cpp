@@ -7,6 +7,10 @@
 #include "dem_extractor.h"
 std::string gDemFileDir;
 
+#define MAX_ELEVATION 8700
+#define MIN_ELEVATION -200
+
+
 LatLng::LatLng():lat(0), lng(0){}
 LatLng::LatLng( float lat_in, float lng_in): lat(lat_in), lng(lng_in){}
 std::string LatLng::srtm_hgt_filename(){
@@ -186,7 +190,7 @@ int DemRegion::read_from_file_sparse(){
         tmp_bot = tmp_buf + 4*dst_lng_samples*y + 2*dst_lng_samples;        
         for( x = 0; x < dst_lng_samples; x += 1 ){
             total = (tmp_top[2*x] + tmp_top[2*x + 1] + tmp_bot[2*x] + tmp_bot[2*x+1])>>2;
-            *dst_ptr++ = total;
+            *dst_ptr++ = saturate( total, MIN_ELEVATION, MAX_ELEVATION);
         }
         
     }
@@ -207,9 +211,12 @@ void DemRegion::print_samples_json(){
     }
     printf("]\n");
 }
-#define MAX_W 255 
-#define MAX_H 255
 
+inline short saturate( short v, short min_val, short max_val){
+    if (v <= min_val){ return min_val;}
+    if (v >= max_val){ return max_val;}
+    return v;
+}
 inline short fread_short_bigendian( FILE *f){
     unsigned char a, b;
     fread( &a, 1, 1, f);

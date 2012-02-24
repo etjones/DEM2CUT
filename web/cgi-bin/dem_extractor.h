@@ -45,6 +45,7 @@ float linear_interp( float a, float b, float ratio);
 float scale( float val, float src_min, float src_max, float dest_min, float dest_max);
 void myReplace(std::string& str, const std::string& oldStr, const std::string& newStr);
 inline short fread_short_bigendian( FILE *f);
+inline short saturate( short v, short min_val, short max_val);
 
 #endif /* end of include guard: DEM_EXTRACTOR_H */
 
