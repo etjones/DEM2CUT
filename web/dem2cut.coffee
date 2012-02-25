@@ -11,6 +11,8 @@ outlineCanvas = ->
     window.canvas=document.getElementById("cut_canvas");
     window.slice_ctx= window.canvas.getContext("2d");
     window.slice_arr = cosArr( 30, 10)
+    # A place to store any errors we get, for debugging
+    window.error_return = 0
     # reSlice()
 
 showLatLng = ->
@@ -25,9 +27,7 @@ showLatLng = ->
         out_s = "(#{sw.toUrlValue(2)}, #{ne.toUrlValue(2)})"
     else
         out_s = "( ?, ?)"
-    document.getElementById("lat_lng").innerHTML= out_s
-    # Note:  this below doesn't seem to work.  Why?
-    # $('#lat_lng').innerHTML( out_s)
+    $("#lat_lng")[0].innerHTML= out_s
 
 saveAsPNG = ->
     # FIXME: Better to open a new tab with this?          
@@ -36,7 +36,14 @@ saveAsPNG = ->
 showValue = (newValue, id)  -> 
     document.getElementById( id).innerHTML=newValue
 
-slices = -> parseInt(document.getElementById("slice_count").value, 10)
+cardinal_direction = -> 
+    switch $("#cardinal_direction")[0].value
+        when "North" then 0
+        when "South" then 1
+        when "East"  then 2
+        when "West"  then 3
+
+slices = -> parseInt($("#slice_count")[0].value, 10)
 reSlice = ->
     showLatLng()
     
@@ -44,9 +51,7 @@ reSlice = ->
     h = window.canvas.height
     # window.slice_arr = cosArr( Math.floor(w/3), slices() )    
     getDemData()
-    # ETJ DEBUG
-    console.log( "getDemData returned array of size (#{window.slice_arr.length}, #{window.slice_arr[0].length})")
-    # END DEBUG
+    
     c = window.slice_ctx
     # Blank the whole context first
     c.fillStyle="white"
@@ -64,7 +69,7 @@ cosArr = (w, h) ->
 
 drawPaths = (ctx, arr2d, w, h) ->
     scale_x = w/arr2d[0].length
-    scale_y = parseFloat( document.getElementById("scale").value)
+    scale_y = parseFloat( $("#scale")[0].value)
     trans_y = (h/scale_y)/(arr2d.length + 1)
     # scale to fit in a w, h box
     ctx.scale( scale_x, scale_y)
@@ -73,6 +78,7 @@ drawPaths = (ctx, arr2d, w, h) ->
     for row, y in arr2d
         # vertical transform
         ctx.translate( 0, trans_y*(y + 0.5))
+        ctx.lineWidth = 1
         ctx.beginPath()
         for elt, x in row
             ctx.lineTo( x, elt)
@@ -89,7 +95,6 @@ getDemData = ->
     
     testing=true
     if testing
-        # lat=0.62&lng=16.47&lat_span=0.15&lng_span=0.15&lat_samples=10&lng_samples=30&dem_file_dir=%2FUsers%2Fjonese%2FSites%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F
         input = { 
             lat: 0.62
             lng: 16.47
@@ -97,6 +102,9 @@ getDemData = ->
             lng_span: 0.15
             lat_samples: slices()
             lng_samples: 30
+            map_w: window.canvas.width
+            map_h: window.canvas.height
+            cardinal: cardinal_direction()            
             # Local testing:
             dem_file_dir: "/Users/jonese/Sites/DEM2CUT/dems/SRTM_90m_global/"
         }
@@ -109,15 +117,23 @@ getDemData = ->
             lng_span: span.lng()
             lat_samples: slices()
             lng_samples: 50
+            map_w: window.canvas.width
+            map_h: window.canvas.height
+            cardinal: cardinal_direction()
             # For use on WebFaction
             dem_file_dir: "/home/etjones/webapps/htdocs/DEM2CUT/dems/SRTM_90m_global/"
+
         }
-    
+    console.log( "Sending input:")
+    for p, v of input
+        console.log("#{p} : #{v}")
     success_ = (result,status,xhr) ->
         window.slice_arr = result;
     
     error_response = (result, status, xhr) -> 
-        alert( status + ": " + result + ": " + xhr)        
+        console.log( status + ": " + xhr + "\nError results are stored in window.error_return")
+        window.error_return = [result, status, xhr  ]
+
     
     $.ajax({
         url:"cgi-bin/dem_extractor.cgi",

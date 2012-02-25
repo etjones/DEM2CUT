@@ -9,6 +9,7 @@ std::string gDemFileDir;
 
 #define MAX_ELEVATION 8700
 #define MIN_ELEVATION -200
+#define MIN_INTER_SLICE_DISTANCE 20
 
 
 LatLng::LatLng():lat(0), lng(0){}
@@ -211,7 +212,50 @@ void DemRegion::print_samples_json(){
     }
     printf("]\n");
 }
-
+void DemRegion::scale_for_window( int map_w, int map_h){
+    // scale all extant values so that min and max fall within a region
+    // of about map_h/(lat_samples-1)
+    
+    // Scale extant values so they're as large as possible while 
+    // A) Fitting in the (map_w, map_h) window they've been given, and
+    // B) Maintaining at least MIN_INTER_SLICE_DISTANCE units between each slice
+    
+    // The data array we're working with is likely so small ( < 2000 samples)
+    // that it's not worth clumping each of these actions together at once.
+    // Unless, well, you want to.  Then go for it...
+    
+    // Move through array, calculating min & max values 
+    short min = 10000, max= -10000;
+    int x,y;
+    for(y = 0; y < lat_samples * lng_samples; y += 1 ){
+        if ( buf[y] < min){ min = buf[y];}
+        if ( buf[y] > max){ max = buf[y];}
+    }
+    
+    // Subtract min from all values so 0 is the baseline. Otherwise, patterns
+    // on the Tibetan plateau might all go off the top of the page
+    for(y = 0; y < lat_samples * lng_samples; y += 1 ){
+        buf[y] -= min;
+    }    
+    
+    // Calculate minimal distance between the same point in two adjacent slices
+    short min_inter_slice_distance = 10000;
+    short dif = 0;
+    for( y = 0; y < lat_samples - 1; y += 1 ){
+        for( x = 0; x < lng_samples; x += 1 ){
+            dif = buf[lng_samples*y + x] - buf[lng_samples*(y+1) + x] ;
+            if ( dif < min_inter_slice_distance){ min_inter_slice_distance = dif;}
+        }
+    }
+    
+    // Scale all values so that min_inter_slice_distance maps to MIN_INTER_SLICE_DISTANCE
+    float base_gap = float(map_h)/(lat_samples -1);
+    float scale = (float)(MIN_INTER_SLICE_DISTANCE)/min_inter_slice_distance;
+    for(y = 0; y < lat_samples * lng_samples; y += 1 ){
+        buf[y] = (short)(buf[y] * scale);
+    }    
+    
+}
 inline short saturate( short v, short min_val, short max_val){
     if (v <= min_val){ return min_val;}
     if (v >= max_val){ return max_val;}
@@ -226,7 +270,8 @@ inline short fread_short_bigendian( FILE *f){
 int main_js (int argc, char const *argv[]) {
     // Parse args 
     float lat, lng, lat_span, lng_span; 
-    int lat_samples, lng_samples;    
+    int lat_samples, lng_samples;
+    int map_w, map_h, cardinal;    
     char dem_file_dir[128];
     
     // Header
@@ -239,25 +284,28 @@ int main_js (int argc, char const *argv[]) {
         printf( "No data stored in env['QUERY_STRING']\n");
         return -1;
     }
-    else {
-        // printf("var QUERY_STRING = %s;\n",query_string);
-    }
 
     // parse values from a string like this:
-    // <DEBUG> export QUERY_STRING="lat=0.62&lng=16.47&lat_span=0.15&lng_span=0.15&lat_samples=10&lng_samples=30&dem_file_dir=%2FUsers%2Fjonese%2FSites%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F"
-    // <REMOTE>export QUERY_STRING="lat=40.02&lng=118.34&lat_span=0.5&lng_span=0.5&lat_samples=20&lng_samples=30&dem_file_dir=%2Fhome%2Fetjones%2Fwebapps%2Fhtdocs%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F"
+    // <DEBUG> export QUERY_STRING="lat=0.62&lng=16.47&lat_span=0.15&lng_span=0.15&lat_samples=10&lng_samples=30&map_w=266&map_h=266&cardinal=0&dem_file_dir=%2FUsers%2Fjonese%2FSites%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F"
+    // <REMOTE>export QUERY_STRING="lat=0.62&lng=16.47&lat_span=0.15&lng_span=0.15&lat_samples=10&lng_samples=30&map_w=266&map_h=266&cardinal=0&dem_file_dir=%2Fhome%2Fetjones%2Fwebapps%2Fhtdocs%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F"
     sscanf( query_string, "lat=%f&lng=%f&lat_span=%f&lng_span=%f&"\
-           "lat_samples=%d&lng_samples=%d&dem_file_dir=%s",\
-           &lat, &lng, &lat_span, &lng_span, &lat_samples, &lng_samples, (char *)&dem_file_dir);        
+           "lat_samples=%d&lng_samples=%d&map_w=%d&map_h=%d&cardinal=%d&dem_file_dir=%s",\
+           &lat, &lng, &lat_span, &lng_span, 
+           &lat_samples, &lng_samples, &map_w, &map_h, &cardinal, (char *)&dem_file_dir);        
 
     if (0){
+        printf("var QUERY_STRING = %s;\n",query_string);        
         printf( "var lat =  %.3f;\n", lat);
         printf( "var lng =  %.3f;\n", lng);
         printf( "var lat_span =  %.3f;\n", lat_span);
         printf( "var lng_span =  %.3f;\n", lng_span);
         printf( "var lat_samples =  %d;\n", lat_samples);
         printf( "var lng_samples =  %d;\n", lng_samples);
+        printf( "var map_w =  %d;\n", map_w);
+        printf( "var map_h =  %d;\n", map_h);        
+        printf( "var cardinal =  %d;\n", cardinal);              
         printf( "var dem_file_dir (orig)=  %s;\n", dem_file_dir);
+  
     }
     
     // dem_file_dir gets passed with slashes subbed for %2F, so sub them back
@@ -272,6 +320,7 @@ int main_js (int argc, char const *argv[]) {
     LatLng max_ll( lat+lat_span, lng+lng_span);
     LatLngRegion llr( min_ll, max_ll);
     DemRegion reg( llr, lat_samples, lng_samples);
+    reg.scale_for_window( map_w, map_h);
     reg.print_samples_json();
     
     return 0;
