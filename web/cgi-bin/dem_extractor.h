@@ -35,7 +35,9 @@ class DemRegion{
       ~DemRegion()      ;
       int read_from_file_sparse();      
       void print_samples_json();
+      void print_samples_json_float();
       void scale_for_window( int map_w, int map_h);
+      
       
 };
 // ===========

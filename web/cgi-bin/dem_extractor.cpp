@@ -149,7 +149,6 @@ int DemRegion::read_from_file_sparse(){
     float src_lat, src_lng; 
     int lat_index, lng_index;
     
-        
     signed short *tmp_ptr = tmp_buf;
     long file_addy;
     for( y = 0; y < dst_lat_samples; y += 1 ){
@@ -168,15 +167,12 @@ int DemRegion::read_from_file_sparse(){
         for( row = 0; row < 2; row += 1 ){
             for( x = 0; x < dst_lng_samples; x += 1 ){
                 src_lng = min_x_index + x*lng_index_gap;
-                lng_index = floor( src_lng);
-                        
+                lng_index = floor( src_lng);   
                 file_addy =  (src_lng_samples*(lat_index+row) + lng_index)*bps;
                 fseek( f, file_addy, SEEK_SET);
 
                 *tmp_ptr++ = fread_short_bigendian( f);
                 *tmp_ptr++ = fread_short_bigendian( f);
-                
-      
             }
         }
     }
@@ -191,9 +187,22 @@ int DemRegion::read_from_file_sparse(){
         tmp_bot = tmp_buf + 4*dst_lng_samples*y + 2*dst_lng_samples;        
         for( x = 0; x < dst_lng_samples; x += 1 ){
             total = (tmp_top[2*x] + tmp_top[2*x + 1] + tmp_bot[2*x] + tmp_bot[2*x+1])>>2;
-            *dst_ptr++ = saturate( total, MIN_ELEVATION, MAX_ELEVATION);
+            // *dst_ptr++ = saturate( total, MIN_ELEVATION, MAX_ELEVATION);
+            *dst_ptr++ = total;
         }
         
+    }
+    
+    // The datasets we've been using have fairly frequent drop-out points where
+    // information is incorrect or unavailable.  These show up as ugly holes 
+    // in maps.  If we have any MIN_ELEVATION points, use the average of 
+    // the two samples to left and right
+    // Note this causes wraparound from left side of image to right
+    for( y = 0; y < dst_lng_samples*dst_lat_samples-1; ++y)
+    {
+        // Note this isn't looking at MIN_ELEVATION, but zero. 
+        // That's an error, but one I'm willing to put up with.
+        if ( buf[y] <= 0){ buf[y] = (buf[y-1] + buf[y+1])/2;}
     }
     
     free( tmp_buf);
@@ -202,7 +211,7 @@ int DemRegion::read_from_file_sparse(){
 void DemRegion::print_samples_json(){
     int x,y;
     signed short *samp = buf;
-    printf("[ ");
+    printf("[ \n");
     for( y = 0; y < lat_samples; y += 1 ){
         printf("[ ");
         for( x = 0; x < lng_samples-1; x += 1 ){
@@ -212,6 +221,33 @@ void DemRegion::print_samples_json(){
     }
     printf("]\n");
 }
+void DemRegion::print_samples_json_float(){
+    int x,y;
+    signed short *samp = buf;
+
+    // find min and max in buffer:
+    float min = 10000,max = -10000;
+    for(y = 0; y < lat_samples * lng_samples; y += 1 ){
+        if ( buf[y] < min){ min = buf[y];}
+        if ( buf[y] > max){ max = buf[y];}
+    }
+    
+    float val;
+    float range = max - min;
+
+    printf("[ \n");
+    for( y = 0; y < lat_samples; y += 1 ){
+        printf("[ ");
+        for( x = 0; x < lng_samples-1; x += 1 ){
+            val = ((*samp++)-min)/range;
+            printf("%.3f, ", val);
+        }
+        val = ((*samp++)-min)/range;
+        printf("%.3f ]%c\n",val, (y<lat_samples-1 ? ',': ' '));
+    }
+    printf("]\n");
+}
+
 void DemRegion::scale_for_window( int map_w, int map_h){
     // scale all extant values so that min and max fall within a region
     // of about map_h/(lat_samples-1)
@@ -223,14 +259,22 @@ void DemRegion::scale_for_window( int map_w, int map_h){
     // The data array we're working with is likely so small ( < 2000 samples)
     // that it's not worth clumping each of these actions together at once.
     // Unless, well, you want to.  Then go for it...
-    
+    int x,y;
+    int src_range = 0, dest_range= 0;
+
     // Move through array, calculating min & max values 
     short min = 10000, max= -10000;
-    int x,y;
     for(y = 0; y < lat_samples * lng_samples; y += 1 ){
         if ( buf[y] < min){ min = buf[y];}
         if ( buf[y] > max){ max = buf[y];}
     }
+    
+    
+    src_range = max - min;
+    dest_range = map_h / lat_samples; // This means every section is self-contained.  
+    // That's not really what we need, since we can go above the next section if the next
+    // section is also going up.  So leaving dest_range at only map_h/lat_samples is overly conservative.
+    
     
     // Subtract min from all values so 0 is the baseline. Otherwise, patterns
     // on the Tibetan plateau might all go off the top of the page
@@ -248,12 +292,41 @@ void DemRegion::scale_for_window( int map_w, int map_h){
         }
     }
     
+    /* ETJ DEBUG
+    printf( "****** Before scale: **************\n");
+    
+    for( y = 0; y < lat_samples; y += 1 ){
+        for( x = 0; x < lng_samples; x += 1 ){
+            printf( "%-4d ", buf[lng_samples*y + x]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+    printf("\n");
+    // END DEBUG */
+    
+    // TODO: scale correctly so that we send the maximum permissible range.
+    
     // Scale all values so that min_inter_slice_distance maps to MIN_INTER_SLICE_DISTANCE
-    float base_gap = float(map_h)/(lat_samples -1);
-    float scale = (float)(MIN_INTER_SLICE_DISTANCE)/min_inter_slice_distance;
+    min_inter_slice_distance *= (min_inter_slice_distance < 0 ? 1 : -1);
+    // float scale = (float)(MIN_INTER_SLICE_DISTANCE)/min_inter_slice_distance;
+    float scale = (float)dest_range/src_range;
     for(y = 0; y < lat_samples * lng_samples; y += 1 ){
         buf[y] = (short)(buf[y] * scale);
-    }    
+    }   
+    
+    /* ETJ DEBUG
+    printf( "****** After scale: **************\n");
+    for( y = 0; y < lat_samples; y += 1 ){
+        for( x = 0; x < lng_samples; x += 1 ){
+            printf( "%-4d ", buf[lng_samples*y + x]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+    printf("\n");
+    // END DEBUG */
+     
     
 }
 inline short saturate( short v, short min_val, short max_val){
@@ -320,14 +393,13 @@ int main_js (int argc, char const *argv[]) {
     LatLng max_ll( lat+lat_span, lng+lng_span);
     LatLngRegion llr( min_ll, max_ll);
     DemRegion reg( llr, lat_samples, lng_samples);
-    reg.scale_for_window( map_w, map_h);
-    reg.print_samples_json();
+    // reg.scale_for_window( map_w, map_h);
+    reg.print_samples_json_float();
     
     return 0;
 }
 
-void myReplace(std::string& str, const std::string& oldStr, const std::string& newStr)
-{
+void myReplace(std::string& str, const std::string& oldStr, const std::string& newStr){
     size_t pos = 0;
     while((pos = str.find(oldStr, pos)) != std::string::npos)
     {

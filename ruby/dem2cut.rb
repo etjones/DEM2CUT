@@ -75,8 +75,15 @@ def pgm_2_arr( pgm_path, max_elevation=MAX_ELEVATION)
 end
 def write_pgm( pgm_path, pgm_2d_arr, output_range=255)
     height, width = pgm_2d_arr.length, pgm_2d_arr[0].length
-    #TODO: we should check that pgm_2d_arr all falls into output_range
+
+    #Check that pgm_2d_arr all falls into output_range
     # and scale it so that it does if not
+    maxval = pgm_2d_arr.map{|r| r.max}.max
+    if maxval > output_range
+        arr_to_use = scale_2d_arr( pgm_2d_arr, false, output_range)
+    else
+        arr_to_use = pgm_2d_arr
+    end
     
     if output_range <= 255
         output_range = 255
