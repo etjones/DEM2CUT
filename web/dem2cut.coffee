@@ -107,6 +107,7 @@ getDemData = ->
         window.last_cgi_time = cur_time
     
     testing=false
+    # testing = true
     if testing
         input = { 
             lat: 45.33
@@ -135,9 +136,9 @@ getDemData = ->
             cardinal: cardinal_direction()
             # For use on WebFaction
             dem_file_dir: "/home/etjones/webapps/htdocs/DEM2CUT/dems/SRTM_90m_global/"
-
+            
         }
-    console.log( "Sending input:")
+    # console.log( "Sending input:")
     # for p, v of input
     #     console.log("#{p} : #{v}")
     success_ = (result,status,xhr) ->
