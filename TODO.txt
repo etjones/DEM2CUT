@@ -5,7 +5,7 @@ TODO:
     be to take into account the aspect ratio of the region being graphed.
 -- open & read DEM data
 
--- use cached DEM data so we don't have to download more.
+
 -- TESTING.
 -- West & east orientations don't work yet.
 
@@ -18,6 +18,7 @@ xx google maps interface for choosing regions
     - some means of acquiring more data - api for ASTER data?
 -- All data cached on server in formats with as little data as
     reasonably possible.  90m grids are probably too dense
+xx use cached DEM data so we don't have to download more.
 
 BUGS:
 xx Coffeescript vertical scaling scales the lines we draw as well 
