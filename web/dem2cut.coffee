@@ -100,7 +100,7 @@ getDemData = ->
     ll = window.map.getCenter()
     
     # Only fire off the CGI script every window.min_cgi_gap millis
-    cur_time = Date().getTime()
+    cur_time = new Date().getTime()
     if cur_time - window.last_cgi_time < window.min_cgi_gap  
         return null
     else
