@@ -14,6 +14,9 @@ outlineCanvas = ->
     window.slice_arr = cosArr( 30, 10)
     # A place to store any errors we get, for debugging
     window.error_return = 0
+    
+    window.last_cgi_time = 0
+    window.min_cgi_gap = 200
     # reSlice()
 
 showLatLng = ->
@@ -95,6 +98,13 @@ drawPaths = (ctx, arr2d, w, h) ->
 getDemData = ->
     span = window.map.getBounds().toSpan()
     ll = window.map.getCenter()
+    
+    # Only fire off the CGI script every window.min_cgi_gap millis
+    cur_time = Date().getTime()
+    if cur_time - window.last_cgi_time < window.min_cgi_gap  
+        return null
+    else
+        window.last_cgi_time = cur_time
     
     testing=false
     if testing
