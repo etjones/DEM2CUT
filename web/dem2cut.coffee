@@ -2,7 +2,7 @@
 initializeMap = ->
     myOptions =
         zoom: 14        
-        center: new google.maps.LatLng(45.38, -121.7)
+        center: new google.maps.LatLng(35.36, 138.73)
         mapTypeId: google.maps.MapTypeId.TERRAIN
     window.map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
 ;
@@ -65,7 +65,6 @@ cosArr = (w, h) ->
             arr2d[y][x] = Math.cos(  (4*y + x*3)/w  *4 *Math.PI)
     arr2d
 
-# drawPaths = (ctx, arr2d, w, h) ->
 drawPaths = ->
     ctx = window.slice_ctx
     arr2d = window.slice_arr
@@ -76,17 +75,6 @@ drawPaths = ->
     ctx.fillStyle="white"
     ctx.fillRect( 0,0, w, h)
     ctx.fillStyle = "black"
-    
-    # TODO:  Our maps contain many incorrect values, which get passed through
-    # as 0 elevation.  The goal would be to detect those bad spots and 
-    # 'clone' over them with nearby pixels. It would be useful to 
-    # Current C code scales everything incorrectly when these incorrect values
-    #   are included.  
-    # It would be good to 
-    # A) Fix data in images, or use better SRTM (v3?) data
-    # B) Detect bad data when it's present in C code & fix there
-    # C) Detect bad data in Coffeescript code and fix there. 
-    
     
     # scale to fit in a w, h box
     scale_x = w/arr2d[0].length
@@ -104,7 +92,6 @@ drawPaths = ->
         # undo vertical transform.  
         ctx.translate( 0, -trans_y*(y + 0.5))
     
-
     # ETJ DEBUG
     # console.log( arr2d.concat())
     # log2DArray( arr2d)
@@ -157,11 +144,11 @@ getDemData = ->
         cardinal: cardinal_direction()
         dem_file_dir: "../../dems/SRTM_90m_global/"
     }
-    # # ETJ DEBUG
+    # ETJ DEBUG
     # console.log( "Sending input:")
     # for p, v of input
     #     console.log("#{p} : #{v}")
-    # # END DEBUG
+    # END DEBUG
             
     success_ = (result,status,xhr) ->
         window.slice_arr = result;

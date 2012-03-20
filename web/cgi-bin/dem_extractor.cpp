@@ -147,8 +147,8 @@ int DemRegion::read_from_file_sparse(){
     
     // Note that lat goes north as it increases, but indices go south as they increase.
     // So y indices are inverted
-    float min_y_index = scale( dst_min_lat,   src_min_lat, src_max_lat, src_lat_samples, 0);
-    float max_y_index = scale( dst_max_lat,   src_min_lat, src_max_lat, src_lat_samples, 0);
+    float min_y_index = scale( dst_max_lat,   src_min_lat, src_max_lat, src_lat_samples, 0);
+    float max_y_index = scale( dst_min_lat,   src_min_lat, src_max_lat, src_lat_samples, 0);
     float lat_index_gap  = (max_y_index - min_y_index)/(dst_lat_samples - 1);
     
     float min_x_index = scale( dst_min_lng, src_min_lng, src_max_lng, 0, src_lng_samples);
@@ -188,7 +188,7 @@ int DemRegion::read_from_file_sparse(){
                 // we find valid data, and use that. 
                 if ( a == NO_DATA && b == NO_DATA){
                     read_forward_offset = 0;
-                    // NOTE: This is an error if we run off the right side of the image.
+                    // FIXME: This is an error if we run off the right side of the image.
                     // Correct would be to search backward if we're on the right edge
                     while( a == NO_DATA){
                         a = fread_short_bigendian( f);
@@ -216,22 +216,9 @@ int DemRegion::read_from_file_sparse(){
         tmp_bot = tmp_buf + 4*dst_lng_samples*y + 2*dst_lng_samples;        
         for( x = 0; x < dst_lng_samples; x += 1 ){
             total = (tmp_top[2*x] + tmp_top[2*x + 1] + tmp_bot[2*x] + tmp_bot[2*x+1])>>2;
-            // *dst_ptr++ = saturate( total, MIN_ELEVATION, MAX_ELEVATION);
-            *dst_ptr++ = total;
+            *dst_ptr++ = saturate( total, MIN_ELEVATION, MAX_ELEVATION);
         }
         
-    }
-    
-    // The datasets we've been using have fairly frequent drop-out points where
-    // information is incorrect or unavailable.  These show up as ugly holes 
-    // in maps.  If we have any MIN_ELEVATION points, use the average of 
-    // the two samples to left and right
-    // Note this causes wraparound from left side of image to right
-    for( y = 0; y < dst_lng_samples*dst_lat_samples-1; ++y)
-    {
-        // Note this isn't looking at MIN_ELEVATION, but zero. 
-        // That's an error, but one I'm willing to put up with.
-        if ( buf[y] <= 0){ buf[y] = (buf[y-1] + buf[y+1])/2;}
     }
     
     free( tmp_buf);
