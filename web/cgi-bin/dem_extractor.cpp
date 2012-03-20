@@ -11,10 +11,14 @@ std::string gDemFileDir;
 #define MIN_ELEVATION -200
 #define MIN_INTER_SLICE_DISTANCE 20
 
+// Data gaps are marked with 0x8000, -32768 as signed short
+#define NO_DATA -32768
 
 LatLng::LatLng():lat(0), lng(0){}
 LatLng::LatLng( float lat_in, float lng_in): lat(lat_in), lng(lng_in){}
 std::string LatLng::srtm_hgt_filename(){
+    // # FIXME: Looking for Mt Fuji (N35E138 at: /N35W222.hgt)
+    // Problem with Google's address?
     int lati = floor( lat);
     int lngi = floor( lng);
     
@@ -150,6 +154,9 @@ int DemRegion::read_from_file_sparse(){
     int lat_index, lng_index;
     
     signed short *tmp_ptr = tmp_buf;
+    signed short a, b;
+    int read_forward_offset =0;
+    
     long file_addy;
     for( y = 0; y < dst_lat_samples; y += 1 ){
         src_lat = min_y_index + y*lat_index_gap;
@@ -170,9 +177,26 @@ int DemRegion::read_from_file_sparse(){
                 lng_index = floor( src_lng);   
                 file_addy =  (src_lng_samples*(lat_index+row) + lng_index)*bps;
                 fseek( f, file_addy, SEEK_SET);
-
-                *tmp_ptr++ = fread_short_bigendian( f);
-                *tmp_ptr++ = fread_short_bigendian( f);
+                a = fread_short_bigendian( f);
+                b = fread_short_bigendian( f);
+                // If there's a gap in data, move forward until 
+                // we find valid data, and use that. 
+                if ( a == NO_DATA && b == NO_DATA){
+                    read_forward_offset = 0;
+                    // NOTE: This is an error if we run off the right side of the image.
+                    // Correct would be to search backward if we're on the right edge
+                    while( a == NO_DATA){
+                        a = fread_short_bigendian( f);
+                    }
+                    b = a;
+                }
+                else {
+                    // If only one of our samples is NO_DATA, use the other
+                    if ( a == NO_DATA){ a = b;}
+                    if ( b == NO_DATA){ b = a;}
+                }
+                *tmp_ptr++ = a;
+                *tmp_ptr++ = b;
             }
         }
     }
