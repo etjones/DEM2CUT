@@ -15,7 +15,12 @@ std::string gDemFileDir;
 #define NO_DATA -32768
 
 LatLng::LatLng():lat(0), lng(0){}
-LatLng::LatLng( float lat_in, float lng_in): lat(lat_in), lng(lng_in){}
+LatLng::LatLng( float lat_in, float lng_in): lat(lat_in), lng(lng_in){
+    // Justify our measurements so they fall within (-90, 90) lat & (-180, 180) lng
+    lng = fmodf(lng + 180, 360.0)-180;
+    if ( lat < -90){ lat = -90.0;}
+    if ( lat > 90) { lat = 90.0;}
+}
 std::string LatLng::srtm_hgt_filename(){
     // # FIXME: Looking for Mt Fuji (N35E138 at: /N35W222.hgt)
     // Problem with Google's address?
