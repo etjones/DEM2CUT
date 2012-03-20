@@ -34,7 +34,7 @@ showLatLng = ->
     $("#lat_lng")[0].innerHTML= out_s
 
 saveAsPNG = ->
-    # FIXME: Better to open a new tab with this?          
+    # FIXME: Better to open a new tab with this.         
     window.location = window.canvas.toDataURL("image/png");  
 
 showValue = (newValue, id)  -> 

@@ -22,8 +22,6 @@ LatLng::LatLng( float lat_in, float lng_in): lat(lat_in), lng(lng_in){
     if ( lat > 90) { lat = 90.0;}
 }
 std::string LatLng::srtm_hgt_filename(){
-    // # FIXME: Looking for Mt Fuji (N35E138 at: /N35W222.hgt)
-    // Problem with Google's address?
     int lati = floor( lat);
     int lngi = floor( lng);
     
@@ -356,7 +354,23 @@ inline short fread_short_bigendian( FILE *f){
     fread( &b, 1, 1, f);
     return ((a << 8) | b);
 }
-int main_js (int argc, char const *argv[]) {
+
+void myReplace(std::string& str, const std::string& oldStr, const std::string& newStr){
+    size_t pos = 0;
+    while((pos = str.find(oldStr, pos)) != std::string::npos)
+    {
+        str.replace(pos, oldStr.length(), newStr);
+        pos += newStr.length();
+    }
+}
+float linear_interp( float a, float b, float ratio){
+    return (1-ratio)*a + ratio*b;
+}
+float scale( float val, float src_min, float src_max, float dest_min, float dest_max){
+    return linear_interp( dest_min, dest_max, (val-src_min)/(src_max-src_min));
+}
+
+int main (int argc, char const *argv[]) {
     // Parse args 
     float lat, lng, lat_span, lng_span; 
     int lat_samples, lng_samples;
@@ -405,8 +419,8 @@ int main_js (int argc, char const *argv[]) {
 
     
     // The actual magic
-    LatLng min_ll( lat-lat_span, lng-lng_span);
-    LatLng max_ll( lat+lat_span, lng+lng_span);
+    LatLng min_ll( lat-lat_span/2.0, lng-lng_span/2.0);
+    LatLng max_ll( lat+lat_span/2.0, lng+lng_span/2.0);
     LatLngRegion llr( min_ll, max_ll);
     DemRegion reg( llr, lat_samples, lng_samples);
     // reg.scale_for_window( map_w, map_h);
@@ -415,23 +429,3 @@ int main_js (int argc, char const *argv[]) {
     return 0;
 }
 
-void myReplace(std::string& str, const std::string& oldStr, const std::string& newStr){
-    size_t pos = 0;
-    while((pos = str.find(oldStr, pos)) != std::string::npos)
-    {
-        str.replace(pos, oldStr.length(), newStr);
-        pos += newStr.length();
-    }
-}
-float linear_interp( float a, float b, float ratio){
-    return (1-ratio)*a + ratio*b;
-}
-float scale( float val, float src_min, float src_max, float dest_min, float dest_max){
-    return linear_interp( dest_min, dest_max, (val-src_min)/(src_max-src_min));
-}
-
-
-int main (int argc, char const *argv[]) {
-    // return main_html( argc, argv);
-    return main_js( argc, argv);
-}
