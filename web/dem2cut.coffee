@@ -47,6 +47,10 @@ cardinal_direction = ->
         when "East"  then 2
         when "West"  then 3
 
+updateSlices = ->
+    $("#slices")[0].innerHTML = slices()
+    reSlice()
+
 slices = -> parseInt($("#slice_count")[0].value, 10)
 reSlice = ->
     showLatLng()
@@ -127,9 +131,6 @@ getDemData = ->
         lng =  ll.lng()
         lat_span =  span.lat()
         lng_span =  span.lng()
-    # ETJ DEBUG
-    # console.log( "lat: #{lat}  lng: #{lng} lat_span: #{lat_span} lng_span: #{lng_span}")    
-    # END DEBUG
     
     # TODO: lng_samples should be defined on a more global level
     input = { 
@@ -171,22 +172,18 @@ getDemData = ->
 $(document).ready ->
   initializeMap()
   outlineCanvas()
-  # Hook buttons to actions.  Haven't figured out namespacing to 
-  # be able to do this from the HTML yet -ETJ 08 Feb 2012
-  $('#useLoc'   ).live( 'click', outlineCanvas)
+  # FIXME: several of these buttons seem to only take effect
+  # after being pressed twice.  I suspect this may be because 
+  # the CGI doesn't return until drawPaths has returned, meaning
+  # that reSlice/drawPaths needs to be called a second time to
+  # show the updated data from the asynchronous CGI call. -ETJ 23 Mar 2012
   $("#saveToPng").live( 'click', saveAsPNG)
-  $("#reSlice"  ).live( 'click', reSlice)
-  $("#scale"    ).live( 'change', drawPaths)
-  # TODO: html still contains showValue call.  Good to figure out how
-  # to do that here as well...
-  $("#slice_count").live( 'change', reSlice)
+  $("#scale"    ).live( 'change', drawPaths) 
+  $('#useLoc'   ).live( 'click', reSlice)
+  $("#reSlice"  ).live( 'click', reSlice) 
+  $("#cardinal_direction").live( 'change', reSlice)
+  $("#slice_count").live( 'change', updateSlices)
   
-  # Add a button at bottom to test cgi
-  
-  cgi_test = document.createElement("input")
-  cgi_test.type = "button"
-  cgi_test.value = "my cgi_test"
-  cgi_test.id = "cgi_test"
   
   
 

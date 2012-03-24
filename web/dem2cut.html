@@ -15,12 +15,6 @@
         <script type="text/javascript" src="coffee-script.js"></script>
         <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
         <script type="text/coffeescript" src="dem2cut.coffee"></script>
-        <script type="text/javascript">
-            function showValue(newValue, id){
-                document.getElementById( id).innerHTML=newValue;
-            }            
-                
-        </script>
     </head>
     <body >
         <h3 id="dem_2_cut">Dem 2 Cut</h3>
@@ -35,8 +29,7 @@
                 Location: <br>  <span id="lat_lng">(?, ?)</span><br>
                 <form action="submit_slice">
                     Slices:<input type="range" name="slice_count" 
-                            value="10" min="6" max="25" id="slice_count"
-                            onchange="showValue(this.value, &quot;slices&quot;)" />
+                            value="10" min="6" max="25" id="slice_count" />
                     <span id="slices">10</span>
                     <br>
                     Scale:<input type="range" name="scale" value="2" min="0.5" max="100" id="scale" step="0.1"/><br>

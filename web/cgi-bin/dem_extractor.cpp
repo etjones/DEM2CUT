@@ -13,7 +13,9 @@ std::string gDemFileDir;
 
 // Data gaps are marked with 0x8000, -32768 as signed short
 #define NO_DATA -32768
-
+// ==========
+// = LatLng =
+// = ------ =
 LatLng::LatLng():lat(0), lng(0){}
 LatLng::LatLng( float lat_in, float lng_in): lat(lat_in), lng(lng_in){
     // Justify our measurements so they fall within (-90, 90) lat & (-180, 180) lng
@@ -34,6 +36,9 @@ std::string LatLng::srtm_hgt_filename(){
     return buffAsStdStr;
 }
 
+// ================
+// = LatLngRegion =
+// = ------------ =
 LatLngRegion::LatLngRegion( LatLng min_lat_lng_in, LatLng max_lat_lng_in){
     // correct our min/max values so they're in order.  
     min_lat = MIN(min_lat_lng_in.lat, max_lat_lng_in.lat);
@@ -59,23 +64,23 @@ bool LatLngRegion::contains_region( LatLngRegion other_region){
     return true;             
 }
 
-
-// First constructor: if only given a map region, find data from 
-// cached DEM files.
-DemRegion::DemRegion( LatLngRegion region_in, int lat_samples_in, int lng_samples_in):
-region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in)
+// =============
+// = DemRegion =
+// = --------- =
+// Constructor: if only given a map region, find data from cached DEM files.
+DemRegion::DemRegion( LatLngRegion region_in, int lat_samples_in, int lng_samples_in, int direction_in):
+region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in), direction( direction_in)
 {
-    // As a first pass, let's give DemRegion the responsibility
-    // for knowing where their data will come from.  
+    // DemRegion are responsibilefor knowing where their data will come from.  
     // Another approach might put that logic in a separate place.
     
     // Find a file(s) that contain the region we care about
     //      Todo: later, this should identify correct scale of data to 
     //      use. A map of North America should use much less granular data
     //      than a map of a single mountain.
+    
     // It's much slower (~4x) to read an entire file and sample from that,
     // rather than to read only the data we want from the file. 
-    
     
     // save memory for samples
     buf = (short *)malloc( lat_samples *lng_samples * sizeof(short));
@@ -139,8 +144,13 @@ int DemRegion::read_from_file_sparse(){
     // Each final sample will take information from four pixels, so we'll fill 
     // dst_buf with 2*2*dst_lat_samples*dst_lng_samples samples.
     
-    // move through a file as efficiently as possible, so we can touch the 
-    // original large images only as many times as we have to.
+    // Adjust so we can face the correct direction
+    // Once data's been read from file, we'll rotate it to face the correct
+    // direction.
+    if (direction == EAST || direction == WEST){
+        swap( &dst_lat_samples, &dst_lng_samples);
+    }
+    
     int x, y, row;
     
     // Note that lat goes north as it increases, but indices go south as they increase.
@@ -158,7 +168,6 @@ int DemRegion::read_from_file_sparse(){
     
     signed short *tmp_ptr = tmp_buf;
     signed short a, b;
-    int read_forward_offset =0;
     
     long file_addy;
     for( y = 0; y < dst_lat_samples; y += 1 ){
@@ -179,25 +188,9 @@ int DemRegion::read_from_file_sparse(){
                 src_lng = min_x_index + x*lng_index_gap;
                 lng_index = floor( src_lng);   
                 file_addy =  (src_lng_samples*(lat_index+row) + lng_index)*bps;
-                fseek( f, file_addy, SEEK_SET);
-                a = fread_short_bigendian( f);
-                b = fread_short_bigendian( f);
-                // If there's a gap in data, move forward until 
-                // we find valid data, and use that. 
-                if ( a == NO_DATA && b == NO_DATA){
-                    read_forward_offset = 0;
-                    // FIXME: This is an error if we run off the right side of the image.
-                    // Correct would be to search backward if we're on the right edge
-                    while( a == NO_DATA){
-                        a = fread_short_bigendian( f);
-                    }
-                    b = a;
-                }
-                else {
-                    // If only one of our samples is NO_DATA, use the other
-                    if ( a == NO_DATA){ a = b;}
-                    if ( b == NO_DATA){ b = a;}
-                }
+                a = fread_valid_data( f, file_addy);
+                b = fread_valid_data( f, file_addy+2);
+                
                 *tmp_ptr++ = a;
                 *tmp_ptr++ = b;
             }
@@ -205,22 +198,36 @@ int DemRegion::read_from_file_sparse(){
     }
     
     // Run through tmp_buf, averaging values and storing them in persistent this.buf
+    average_tmp_values( tmp_buf, buf, dst_lat_samples, dst_lng_samples);
+    
+    // Rotate buffers as appropriate, so they face the right direction
+    rotate_buffer( buf, dst_lng_samples, dst_lat_samples, direction);
+    
+    // If necessary unswap our buffer w & h
+    if (direction == EAST || direction == WEST){
+        swap( &dst_lat_samples, &dst_lng_samples);
+    }    
+    
+    free( tmp_buf);
+    return 0;
+}
+
+void DemRegion::average_tmp_values( short *src_quads, short *dst_singles, int dst_lat_samples, int dst_lng_samples){
+    // Run through tmp_buf, averaging values and storing them in persistent this.buf
     int total = 0;
-    short *dst_ptr = buf;
-    short *tmp_top = tmp_buf;
+    short *dst_ptr = dst_singles;
+    short *tmp_top = src_quads;
     short *tmp_bot = tmp_top + 2*dst_lng_samples; 
+    int x, y;
     for( y = 0; y < dst_lat_samples; y += 1 ){
-        tmp_top = tmp_buf + 4*dst_lng_samples*y;
-        tmp_bot = tmp_buf + 4*dst_lng_samples*y + 2*dst_lng_samples;        
+        tmp_top = src_quads + 4*dst_lng_samples*y;
+        tmp_bot = src_quads + 4*dst_lng_samples*y + 2*dst_lng_samples;        
         for( x = 0; x < dst_lng_samples; x += 1 ){
             total = (tmp_top[2*x] + tmp_top[2*x + 1] + tmp_bot[2*x] + tmp_bot[2*x+1])>>2;
             *dst_ptr++ = saturate( total, MIN_ELEVATION, MAX_ELEVATION);
         }
         
-    }
-    
-    free( tmp_buf);
-    return 0;
+    }    
 }
 void DemRegion::print_samples_json(){
     int x,y;
@@ -261,8 +268,8 @@ void DemRegion::print_samples_json_float(){
     }
     printf("]\n");
 }
-
 void DemRegion::scale_for_window( int map_w, int map_h){
+    // NOTE: defunct  -ETJ 22 Mar 2012
     // scale all extant values so that min and max fall within a region
     // of about map_h/(lat_samples-1)
     
@@ -343,10 +350,51 @@ void DemRegion::scale_for_window( int map_w, int map_h){
      
     
 }
+
+// ===========
+// = Helpers =
+// = ------- =
 inline short saturate( short v, short min_val, short max_val){
     if (v <= min_val){ return min_val;}
     if (v >= max_val){ return max_val;}
     return v;
+}
+short fread_valid_data( FILE *f, int file_addy){
+    // Read a correct-endian short value at file_addy. 
+    // If a NO_DATA value is found at file_addy, 
+    // move left and right through f until we've found
+    // valid values on both sides. 
+    // Return a value linearly interpolated between the valid values found.
+    // NOTE: This doesn't take the left & right edges of the file 
+    // into account at all.  That's tacky.
+    int left_offset = 0;
+    int right_offset = 0;
+    
+    short val;
+    short left_val, right_val;
+    
+    fseek( f, file_addy, SEEK_SET);
+    val = fread_short_bigendian( f);
+    
+    if (val == NO_DATA){
+        left_val = right_val = NO_DATA;
+        // read left for a valid datum
+        while( left_val == NO_DATA){
+            fseek( f, -2*sizeof(short), SEEK_CUR);
+            left_val = fread_short_bigendian(f);
+            left_offset++;
+        }
+        // reset to file_addy
+        fseek( f, file_addy+2, SEEK_SET);
+        // read right for a valid datum
+        while( right_val == NO_DATA){
+            right_val = fread_short_bigendian( f);
+            right_offset++;
+        }
+        val = linear_interp( left_val, right_val, (float)left_offset/(left_offset + right_offset));
+    }
+    return val;
+    
 }
 inline short fread_short_bigendian( FILE *f){
     unsigned char a, b;
@@ -354,7 +402,12 @@ inline short fread_short_bigendian( FILE *f){
     fread( &b, 1, 1, f);
     return ((a << 8) | b);
 }
-
+void swap( int *a, int *b){
+    int tmp;
+    tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
 void myReplace(std::string& str, const std::string& oldStr, const std::string& newStr){
     size_t pos = 0;
     while((pos = str.find(oldStr, pos)) != std::string::npos)
@@ -369,7 +422,62 @@ float linear_interp( float a, float b, float ratio){
 float scale( float val, float src_min, float src_max, float dest_min, float dest_max){
     return linear_interp( dest_min, dest_max, (val-src_min)/(src_max-src_min));
 }
+void rotate_buffer( short *rect, int w, int h, int direction){   
+    short *temp = (short *)malloc( w*h*sizeof(short));
+    int i,j;
+    // Assumes rect is already north-facing. 
+    // rect is a 1D, implicitly w * h array.  Rotating to east or west
+    // will render an implicitly  h* w array.
+    if (direction == SOUTH){
+        // (i, j) ==> ( w - 1 -i, h - 1 -j)
+        for( j = 0; j < h; j += 1 ){
+            for( i = 0; i < w; i += 1 ){
+                temp[ w*( h-1-j) + w - 1 - i] = rect[w*j+i];
+            }
+        }
+    }
+    else if( direction == EAST){
+        // (i, j) => ( j, w-1-i)
+        for( j = 0; j < h; j += 1 ){
+            for( i = 0; i < w; i += 1 ){
+                temp[ h*( w-1-i) + j] = rect[w*j+i];
+            }
+        }        
+    }
+    else if (direction == WEST){
+        // (i,j) => (h-1-j, i)
+        for( j = 0; j < h; j += 1 ){
+            for( i = 0; i < w; i += 1 ){
+                temp[ h*(i) + h-1-j] = rect[w*j+i];
+            }
+        }          
+    }
+    else{
+        // Default to North: no change
+        return;
+    }
+    
+    // copy back to original buffer
+    for( i = 0; i < w*h; i += 1 ){
+        rect[i] = temp[i];
+    }
+    
+    free( temp);
+}
+void print_arr_2d( short *arr, int w, int h){
+    int i, j;
+    for( j = 0; j < h; j += 1 ){
+        for( i = 0; i < w; i += 1 ){
+            printf("%3d ",arr[j*w+i]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
 
+// ===============
+// = Entry Point =
+// = ----------- =
 int main (int argc, char const *argv[]) {
     // Parse args 
     float lat, lng, lat_span, lng_span; 
@@ -422,7 +530,7 @@ int main (int argc, char const *argv[]) {
     LatLng min_ll( lat-lat_span/2.0, lng-lng_span/2.0);
     LatLng max_ll( lat+lat_span/2.0, lng+lng_span/2.0);
     LatLngRegion llr( min_ll, max_ll);
-    DemRegion reg( llr, lat_samples, lng_samples);
+    DemRegion reg( llr, lat_samples, lng_samples, cardinal);
     // reg.scale_for_window( map_w, map_h);
     reg.print_samples_json_float();
     
