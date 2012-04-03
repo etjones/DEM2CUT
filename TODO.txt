@@ -1,16 +1,14 @@
 TODO:
--- add makefile for cgi.  This needs to set permissions correctly (711) for running on Apache.
--- finish dem_extractor.cpp
 -- all lat_long regions are currently warped into squares.  Better would
     be to take into account the aspect ratio of the region being graphed.
 -- open & read DEM data
-
-
 -- TESTING.
--- West & east orientations don't work yet.
 
 
 Destination:
+xx West & east orientations don't work yet.
+xx finish dem_extractor.cpp
+xx add makefile for cgi.  This needs to set permissions correctly (711) for running on Apache.
 xx- live-updating HTML5 canvas for use on a website
 xx interactive sliders
 xx google maps interface for choosing regions
