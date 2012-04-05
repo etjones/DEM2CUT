@@ -35,7 +35,6 @@ std::string LatLng::srtm_hgt_filename(){
     std::string buffAsStdStr = buff;
     return buffAsStdStr;
 }
-// FIXME: how to get this to compile?
 LatLngRegion LatLng::enclosing_srtm_region(){
     return LatLngRegion( floor(lat), floor(lng), ceil(lat), ceil(lng));
 }
@@ -57,7 +56,6 @@ bool LatLngRegion::contains_point( LatLng lat_lng){
     return (lat_lng.lat >= min_lat && lat_lng.lat <= max_lat &&
             lat_lng.lng >= min_lng && lat_lng.lng <= max_lng );
 }
-
 bool LatLngRegion::contains_region( LatLngRegion other_region){
     LatLng corners[4] = {LatLng(min_lat, min_lng), LatLng(min_lat, max_lng),
         LatLng(max_lat, min_lng), LatLng(max_lat, max_lng)};
@@ -73,9 +71,8 @@ bool LatLngRegion::contains_region( LatLngRegion other_region){
 // = --------- =
 // Constructor: if only given a map region, find data from cached DEM files.
 DemRegion::DemRegion( LatLngRegion region_in, int lat_samples_in, int lng_samples_in, int direction_in):
-region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in), direction( direction_in)
-{
-    // DemRegion are responsibilefor knowing where their data will come from.  
+region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in), direction( direction_in){
+    // DemRegion are responsibile for knowing where their data will come from.  
     // Another approach might put that logic in a separate place.
     
     // Find a file(s) that contain the region we care about
@@ -83,15 +80,16 @@ region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in), 
     //      use. A map of North America should use much less granular data
     //      than a map of a single mountain.
     
-    // It's much slower (~4x) to read an entire file and sample from that,
-    // rather than to read only the data we want from the file. 
-    
-    // save memory for samples
+    // Memory for samples
     buf = (short *)malloc( lat_samples *lng_samples * sizeof(short));
     LatLng *ll_list = (LatLng *)malloc( lat_samples*lng_samples*sizeof(LatLng));
     
-    // TODO: swap lat_samples, lng_samples if we're facing East/West
+    // Swap lat_samples & lng_samples if we're facing east or west
+    if (direction == EAST || direction == WEST){
+        swap( &lat_samples, &lng_samples);
+    }
     
+    // List of points from which to get elevation
     ll_list = lat_lngs_to_sample( ll_list, region, lat_samples, lng_samples);
     int x,y;
     
@@ -103,22 +101,25 @@ region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in), 
     int lat_degree_span = ceil( region.max_lat) - floor( region.min_lat);
     int lng_degree_span = ceil( region.max_lng) - floor( region.min_lng);
     FILE **all_tiles = (FILE **)malloc( lat_degree_span * lng_degree_span * sizeof(FILE *));
+    FILE *tile;
     std::string filename;
         
+    // tiles are in dictionary order (decreasing latitude, increasing longiude)    
+    // A B
+    // C D        
     for( y = 0; y < lat_degree_span; y += 1 ){
         for( x = 0; x < lng_degree_span; x += 1 ){
-            filename = gDemFileDir + LatLng( y + min_lat, x + min_lng).srtm_hgt_filename();
-            // TODO: need to fail if we don't have a file. 
-            // FIXME: what to do for nonexistent tiles?  Think they should all just read as zero?
-            all_tiles[y*lng_degree_span + x] = fopen( filename.c_str(), "r");
+            filename = gDemFileDir + LatLng( (lat_degree_span -1 - y) + min_lat, x + min_lng).srtm_hgt_filename();
+            // NOTE: if we don't have a file (oceans, polar regions), just store
+            // a null pointer.  All file reads use fread_valid_data(), which 
+            // returns 0 for null file pointers.  This is a hack, but it's expedient. -ETJ 05 Apr 2012
+            tile = fopen( filename.c_str(), "r");
+            all_tiles[y*lng_degree_span + x] = tile;
         }
     }
     
-    // TODO: get elevations for all points in ll_list, and store
-    // them correctly in buffer. 
-    // Open/ close appropriate file based on lat/long, which means
-    // many more opens/closes than necessary, but is awfully simple.
-    FILE *tile = all_tiles[0];
+    // Get elevations for all points in ll_list, and store them in buf
+    tile = all_tiles[0];
     LatLngRegion cur_region = ll_list[0].enclosing_srtm_region();
     LatLng ll;
     int tile_index;
@@ -127,31 +128,35 @@ region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in), 
     for( y = 0; y < lat_samples; y += 1 ){
         for( x = 0; x < lng_samples; x += 1 ){
             ll = ll_list[y*lng_samples + x];
-            // Open appropriate file if needed
+            // Look in correct map tile
             if ( !cur_region.contains_point( ll)){
                 cur_region = ll.enclosing_srtm_region();
                 tile_index = lng_degree_span * ((int)(ll.lat-min_lat)) + (int)(ll.lng - min_lng);
                 tile = all_tiles[ tile_index];
             }
             val = elev_at_lat_lng( ll, tile, cur_region, 1201, 1201);
-            buf[y*lng_samples + x] = val;
-//            buf[y*lng_samples + x] = elev_at_lat_lng( ll, tile, cur_region, 1201, 1201);
-            
+            buf[y*lng_samples + x] = val;            
         }
     }
     
-    // TODO: if we're facing south/east/west
-    // swap lat_samples, lng_samples & rotate buffers
+    // Rotate buffers as appropriate, so they face the right direction
+    rotate_buffer( buf, lng_samples, lat_samples, direction);
+
+     // If we're facing east/west swap lat_samples, lng_samples back to how they were originally
+    if (direction == EAST || direction == WEST){
+        swap( &lat_samples, &lng_samples);
+    }   
+    
+    // close all open files    
     for( y = 0; y < lat_degree_span * lng_degree_span; y += 1 ){
-        fclose( all_tiles[y]);
+        if ( all_tiles[y]){ fclose( all_tiles[y]);}
     }
     free( all_tiles);
     free( ll_list);
     
 }
 LatLng *DemRegion::lat_lngs_to_sample(  LatLng *ll_list, LatLngRegion dst_region, 
-                                        int dst_lat_samples, int dst_lng_samples)
-{
+                                        int dst_lat_samples, int dst_lng_samples){
     int x, y;
     
     float dst_min_lat = dst_region.min_lat;
@@ -163,8 +168,9 @@ LatLng *DemRegion::lat_lngs_to_sample(  LatLng *ll_list, LatLngRegion dst_region
     float lng_gap = (dst_max_lng - dst_min_lng)/(dst_lng_samples - 1);
 
     float lat, lng;
+    // Note higher latitudes are stored at lower indices, as the maps are
     for( y = 0; y < dst_lat_samples; y += 1 ){
-        lat = dst_min_lat + y * lat_gap;
+        lat = dst_max_lat - y * lat_gap;
         for( x = 0; x < dst_lng_samples; x += 1 ){
             lng = dst_min_lng + x * lng_gap;
             ll_list[y*dst_lng_samples + x] = LatLng( lat, lng);
@@ -174,8 +180,7 @@ LatLng *DemRegion::lat_lngs_to_sample(  LatLng *ll_list, LatLngRegion dst_region
     return ll_list;           
 }
 short DemRegion::elev_at_lat_lng( LatLng pt, FILE *tile, LatLngRegion tile_region, 
-                                    int tile_lat_samples, int tile_lng_samples)
-{
+                                    int tile_lat_samples, int tile_lng_samples){
     short a,b,c,d, val;
     // object if we're looking in the wrong file
     if (!tile_region.contains_point( pt) ){
@@ -184,7 +189,7 @@ short DemRegion::elev_at_lat_lng( LatLng pt, FILE *tile, LatLngRegion tile_regio
     
     // calculate the notional exact index of this point
     // In the files, highest latitude is stored at y-index 0, so invert lat scaling
-    float exact_lat_index = scale( pt.lat, tile_region.max_lat, tile_region.min_lat, 0, tile_lat_samples);
+    float exact_lat_index = scale( pt.lat, tile_region.min_lat, tile_region.max_lat, tile_lat_samples, 0);
     float exact_lng_index = scale( pt.lng, tile_region.min_lng, tile_region.max_lng, 0, tile_lng_samples);
 
     // Make sure we don't read off the edge of the array
@@ -196,8 +201,8 @@ short DemRegion::elev_at_lat_lng( LatLng pt, FILE *tile, LatLngRegion tile_regio
     int file_addy = (floor( exact_lat_index) * tile_lng_samples + floor( exact_lng_index)) * bps;
     
     a = fread_valid_data( tile, file_addy);
-    b = fread_valid_data( tile, file_addy+bps);
-    c = fread_valid_data( tile, file_addy + bps*tile_lng_samples);
+    b = fread_valid_data( tile, file_addy + bps);
+    c = fread_valid_data( tile, file_addy       + bps*tile_lng_samples);
     d = fread_valid_data( tile, file_addy + bps + bps*tile_lng_samples);
     
     // average the four points.
@@ -251,6 +256,11 @@ inline short saturate( short v, short min_val, short max_val){
     return v;
 }
 short fread_valid_data( FILE *f, int file_addy){
+    // HACK:  For many areas (oceans, poles) we don't have tiles.
+    // These files are currently passed as null pointers.  If f is null,
+    // assume there's a reason for it, and just return 0. 
+    if (!f){ return 0;};
+    
     // Read a correct-endian short value at file_addy. 
     // If a NO_DATA value is found at file_addy, 
     // move left and right through f until we've found
@@ -298,12 +308,6 @@ void swap( int *a, int *b){
     tmp = *a;
     *a = *b;
     *b = tmp;
-}
-void swap( float *a, float *b){
-    float tmp;
-    tmp = *a;
-    *a = *b;
-    *b = tmp;   
 }
 void myReplace(std::string& str, const std::string& oldStr, const std::string& newStr){
     size_t pos = 0;

@@ -2,7 +2,7 @@ TODO:
 -- add fold/ frame lines to drawn canvas
 -- color cut/fold lines differentially
 -- manage image scaling for larger areas
-
+-- dem_extractor should return an optimal scale factor so that no line hits another, and this should be applied in the drawing
 -- fix updating so:
     a) cut pattern updates with map dragging
     b) direction & slice number controls update cut immediately
