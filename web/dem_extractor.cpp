@@ -35,17 +35,20 @@ std::string LatLng::srtm_hgt_filename(){
     std::string buffAsStdStr = buff;
     return buffAsStdStr;
 }
+// FIXME: how to get this to compile?
+LatLngRegion LatLng::enclosing_srtm_region(){
+    return LatLngRegion( floor(lat), floor(lng), ceil(lat), ceil(lng));
+}
 
 // ================
 // = LatLngRegion =
 // = ------------ =
-LatLngRegion::LatLngRegion( LatLng min_lat_lng_in, LatLng max_lat_lng_in){
-    // correct our min/max values so they're in order.  
-    min_lat = MIN(min_lat_lng_in.lat, max_lat_lng_in.lat);
-    max_lat = MAX(min_lat_lng_in.lat, max_lat_lng_in.lat);
-    
-    min_lng = MIN(min_lat_lng_in.lng, max_lat_lng_in.lng);
-    max_lng = MAX(min_lat_lng_in.lng, max_lat_lng_in.lng);  
+LatLngRegion::LatLngRegion(){}
+LatLngRegion::LatLngRegion( float min_lat_in, float min_lng_in, float max_lat_in, float max_lng_in){
+    min_lat = MIN( min_lat_in, max_lat_in);
+    max_lat = MAX( min_lat_in, max_lat_in);
+    min_lng = MIN( min_lng_in, max_lng_in);
+    max_lng = MAX( min_lng_in, max_lng_in);
     
     min_lat_lng = LatLng( min_lat, min_lng);
     max_lat_lng = LatLng( max_lat, max_lng);
@@ -54,6 +57,7 @@ bool LatLngRegion::contains_point( LatLng lat_lng){
     return (lat_lng.lat >= min_lat && lat_lng.lat <= max_lat &&
             lat_lng.lng >= min_lng && lat_lng.lng <= max_lng );
 }
+
 bool LatLngRegion::contains_region( LatLngRegion other_region){
     LatLng corners[4] = {LatLng(min_lat, min_lng), LatLng(min_lat, max_lng),
         LatLng(max_lat, min_lng), LatLng(max_lat, max_lng)};
@@ -84,163 +88,132 @@ region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in), 
     
     // save memory for samples
     buf = (short *)malloc( lat_samples *lng_samples * sizeof(short));
+    LatLng *ll_list = (LatLng *)malloc( lat_samples*lng_samples*sizeof(LatLng));
     
-    // For the moment, only handle data that's entirely in a single 1x1 degree
-    // file.
-    if ( floor( region.min_lat) != floor( region.max_lat)  ||
-         floor( region.min_lng) != floor( region.max_lng) )
-    {
-        // Print an error string and exit
-        printf( "Unable to view areas on more than one 1x1 degree tile\n");
-        exit( -1);
-    }
+    // TODO: swap lat_samples, lng_samples if we're facing East/West
     
-    if (read_from_file_sparse()) {
-        // Throw error
-        printf( "Failed to read from file\n");
-    }
+    ll_list = lat_lngs_to_sample( ll_list, region, lat_samples, lng_samples);
+    int x,y;
     
+    // TODO: limit us to some reasonable number of files to read. 16? 25?
     
-}
-DemRegion::~DemRegion(){
-    free(buf);
-}
-int DemRegion::read_from_file_sparse(){
-    // First pass: We're reading from a single 1x1 degree hgt file, into
-    // our own LatLngRegion, with lat_samples x lng_samples
-    float src_min_lat = floor( region.min_lat);
-    float src_max_lat =  ceil( region.max_lat);
-    float src_min_lng = floor( region.min_lng);
-    float src_max_lng =  ceil( region.max_lng);
-    
-    float dst_min_lat = region.min_lat;
-    float dst_max_lat = region.max_lat;
-    float dst_min_lng = region.min_lng;
-    float dst_max_lng = region.max_lng;    
-    
-    int src_lat_samples = 1201;
-    int src_lng_samples = 1201;
-    int dst_lat_samples = lat_samples;
-    int dst_lng_samples = lng_samples;
-    
-    int bps = 2; // bytes per sample
-    
-    signed short *tmp_buf = (signed short *)malloc( dst_lat_samples*dst_lng_samples*4*bps);
-    
-    std::string filename = gDemFileDir + region.min_lat_lng.srtm_hgt_filename();
-    FILE *f = fopen( filename.c_str(), "r");
-    
-    if (!f){
-        printf( "Failed to read from file:\n\t \"%s\"\n", filename.c_str());
-        return -1;
-    }
+    // Open all files and put them in an array, all_tiles
+    int min_lat = floor(region.min_lat);
+    int min_lng = floor(region.min_lng);
+    int lat_degree_span = ceil( region.max_lat) - floor( region.min_lat);
+    int lng_degree_span = ceil( region.max_lng) - floor( region.min_lng);
+    FILE **all_tiles = (FILE **)malloc( lat_degree_span * lng_degree_span * sizeof(FILE *));
+    std::string filename;
         
-    // Arguments represent two regions of different sizes with different 
-    // sampling rates.  
-    // For instance: 
-    // 90m maps are made up of 1 degree by 1 degree squares, with 1200 samples in each direction.  
-    // dstination features may be 1/16th degree square, with 25 x 100 samples, for example
-    
-    // Each final sample will take information from four pixels, so we'll fill 
-    // dst_buf with 2*2*dst_lat_samples*dst_lng_samples samples.
-    
-    // Adjust so we can face the correct direction
-    // Once data's been read from file, we'll rotate it to face the correct
-    // direction.
-    if (direction == EAST || direction == WEST){
-        swap( &dst_lat_samples, &dst_lng_samples);
-    }
-    
-    int x, y, row;
-    
-    // Note that lat goes north as it increases, but indices go south as they increase.
-    // So y indices are inverted
-    float min_y_index = scale( dst_max_lat,   src_min_lat, src_max_lat, src_lat_samples, 0);
-    float max_y_index = scale( dst_min_lat,   src_min_lat, src_max_lat, src_lat_samples, 0);
-    float lat_index_gap  = (max_y_index - min_y_index)/(dst_lat_samples - 1);
-    
-    float min_x_index = scale( dst_min_lng, src_min_lng, src_max_lng, 0, src_lng_samples);
-    float max_x_index = scale( dst_max_lng, src_min_lng, src_max_lng, 0, src_lng_samples);
-    float lng_index_gap = (max_x_index - min_x_index)/(dst_lng_samples - 1);
-    
-    float src_lat, src_lng; 
-    int lat_index, lng_index;
-    
-    signed short *tmp_ptr = tmp_buf;
-    signed short a, b;
-    
-    long file_addy;
-    for( y = 0; y < dst_lat_samples; y += 1 ){
-        src_lat = min_y_index + y*lat_index_gap;
-        lat_index = floor( src_lat);
-        
-        // If we would run past the bottom of the image, decrement lat_index
-        if ( lat_index + 2 >= src_lng_samples ){ lat_index = src_lng_samples - 2;}
-        
-        // NOTE: to really do our interpolations right, we'd have to save float
-        // values of (lat, lng) for for each 4 points below, then interpolate 
-        // between them based on those values.  
-        // I'm assuming that elevations between data points are close enough
-        // that a simple average will be accurate enough.  Depending on the scale
-        // of maps used, this could cause significant errors, though. -ETJ 18 Feb 2012
-        for( row = 0; row < 2; row += 1 ){
-            for( x = 0; x < dst_lng_samples; x += 1 ){
-                src_lng = min_x_index + x*lng_index_gap;
-                lng_index = floor( src_lng);   
-                file_addy =  (src_lng_samples*(lat_index+row) + lng_index)*bps;
-                a = fread_valid_data( f, file_addy);
-                b = fread_valid_data( f, file_addy+2);
-                
-                *tmp_ptr++ = a;
-                *tmp_ptr++ = b;
-            }
+    for( y = 0; y < lat_degree_span; y += 1 ){
+        for( x = 0; x < lng_degree_span; x += 1 ){
+            filename = gDemFileDir + LatLng( y + min_lat, x + min_lng).srtm_hgt_filename();
+            // TODO: need to fail if we don't have a file. 
+            // FIXME: what to do for nonexistent tiles?  Think they should all just read as zero?
+            all_tiles[y*lng_degree_span + x] = fopen( filename.c_str(), "r");
         }
     }
     
-    // Run through tmp_buf, averaging values and storing them in persistent this.buf
-    average_tmp_values( tmp_buf, buf, dst_lat_samples, dst_lng_samples);
+    // TODO: get elevations for all points in ll_list, and store
+    // them correctly in buffer. 
+    // Open/ close appropriate file based on lat/long, which means
+    // many more opens/closes than necessary, but is awfully simple.
+    FILE *tile = all_tiles[0];
+    LatLngRegion cur_region = ll_list[0].enclosing_srtm_region();
+    LatLng ll;
+    int tile_index;
+    short val;
     
-    // Rotate buffers as appropriate, so they face the right direction
-    rotate_buffer( buf, dst_lng_samples, dst_lat_samples, direction);
+    for( y = 0; y < lat_samples; y += 1 ){
+        for( x = 0; x < lng_samples; x += 1 ){
+            ll = ll_list[y*lng_samples + x];
+            // Open appropriate file if needed
+            if ( !cur_region.contains_point( ll)){
+                cur_region = ll.enclosing_srtm_region();
+                tile_index = lng_degree_span * ((int)(ll.lat-min_lat)) + (int)(ll.lng - min_lng);
+                tile = all_tiles[ tile_index];
+            }
+            val = elev_at_lat_lng( ll, tile, cur_region, 1201, 1201);
+            buf[y*lng_samples + x] = val;
+//            buf[y*lng_samples + x] = elev_at_lat_lng( ll, tile, cur_region, 1201, 1201);
+            
+        }
+    }
     
-    // If necessary unswap our buffer w & h
-    if (direction == EAST || direction == WEST){
-        swap( &dst_lat_samples, &dst_lng_samples);
-    }    
+    // TODO: if we're facing south/east/west
+    // swap lat_samples, lng_samples & rotate buffers
+    for( y = 0; y < lat_degree_span * lng_degree_span; y += 1 ){
+        fclose( all_tiles[y]);
+    }
+    free( all_tiles);
+    free( ll_list);
     
-    free( tmp_buf);
-    return 0;
+}
+LatLng *DemRegion::lat_lngs_to_sample(  LatLng *ll_list, LatLngRegion dst_region, 
+                                        int dst_lat_samples, int dst_lng_samples)
+{
+    int x, y;
+    
+    float dst_min_lat = dst_region.min_lat;
+    float dst_max_lat = dst_region.max_lat;
+    float dst_min_lng = dst_region.min_lng;
+    float dst_max_lng = dst_region.max_lng;   
+    
+    float lat_gap = (dst_max_lat - dst_min_lat)/(dst_lat_samples - 1);
+    float lng_gap = (dst_max_lng - dst_min_lng)/(dst_lng_samples - 1);
+
+    float lat, lng;
+    for( y = 0; y < dst_lat_samples; y += 1 ){
+        lat = dst_min_lat + y * lat_gap;
+        for( x = 0; x < dst_lng_samples; x += 1 ){
+            lng = dst_min_lng + x * lng_gap;
+            ll_list[y*dst_lng_samples + x] = LatLng( lat, lng);
+        }
+    }
+    
+    return ll_list;           
+}
+short DemRegion::elev_at_lat_lng( LatLng pt, FILE *tile, LatLngRegion tile_region, 
+                                    int tile_lat_samples, int tile_lng_samples)
+{
+    short a,b,c,d, val;
+    // object if we're looking in the wrong file
+    if (!tile_region.contains_point( pt) ){
+        return NO_DATA; // TODO: this should be some more salient error value, not NO_DATA
+    }
+    
+    // calculate the notional exact index of this point
+    // In the files, highest latitude is stored at y-index 0, so invert lat scaling
+    float exact_lat_index = scale( pt.lat, tile_region.max_lat, tile_region.min_lat, 0, tile_lat_samples);
+    float exact_lng_index = scale( pt.lng, tile_region.min_lng, tile_region.max_lng, 0, tile_lng_samples);
+
+    // Make sure we don't read off the edge of the array
+    if ( ceil(exact_lat_index) >= tile_lat_samples){ exact_lat_index -= 1;}
+    if ( ceil(exact_lng_index) >= tile_lng_samples){ exact_lng_index -= 1;}
+
+    // read the four surrounding data points
+    int bps = 2;
+    int file_addy = (floor( exact_lat_index) * tile_lng_samples + floor( exact_lng_index)) * bps;
+    
+    a = fread_valid_data( tile, file_addy);
+    b = fread_valid_data( tile, file_addy+bps);
+    c = fread_valid_data( tile, file_addy + bps*tile_lng_samples);
+    d = fread_valid_data( tile, file_addy + bps + bps*tile_lng_samples);
+    
+    // average the four points.
+    int total = a + b + c + d;
+    val = total/4;
+    
+    // NOTE: if only one value is being taken for a very large area, this
+    // point really would be better off averaging many more values; if a point
+    // falls within a valley in a region of high peaks, we'll be returning
+    // a technically correct but generally deceptive value for elevation. 
+    // I guess I'd call this 'geographic aliasing'-ETJ 04 Apr 2012
+    return val;
 }
 
-void DemRegion::average_tmp_values( short *src_quads, short *dst_singles, int dst_lat_samples, int dst_lng_samples){
-    // Run through tmp_buf, averaging values and storing them in persistent this.buf
-    int total = 0;
-    short *dst_ptr = dst_singles;
-    short *tmp_top = src_quads;
-    short *tmp_bot = tmp_top + 2*dst_lng_samples; 
-    int x, y;
-    for( y = 0; y < dst_lat_samples; y += 1 ){
-        tmp_top = src_quads + 4*dst_lng_samples*y;
-        tmp_bot = src_quads + 4*dst_lng_samples*y + 2*dst_lng_samples;        
-        for( x = 0; x < dst_lng_samples; x += 1 ){
-            total = (tmp_top[2*x] + tmp_top[2*x + 1] + tmp_bot[2*x] + tmp_bot[2*x+1])>>2;
-            *dst_ptr++ = saturate( total, MIN_ELEVATION, MAX_ELEVATION);
-        }
-        
-    }    
-}
-void DemRegion::print_samples_json(){
-    int x,y;
-    signed short *samp = buf;
-    printf("[ \n");
-    for( y = 0; y < lat_samples; y += 1 ){
-        printf("[ ");
-        for( x = 0; x < lng_samples-1; x += 1 ){
-            printf("%6d, ", *samp++);
-        }
-        printf("%6d ]%c\n",*samp++, (y<lat_samples-1 ? ',': ' '));
-    }
-    printf("]\n");
+DemRegion::~DemRegion(){
+    free(buf);
 }
 void DemRegion::print_samples_json_float(){
     int x,y;
@@ -267,88 +240,6 @@ void DemRegion::print_samples_json_float(){
         printf("%.3f ]%c\n",val, (y<lat_samples-1 ? ',': ' '));
     }
     printf("]\n");
-}
-void DemRegion::scale_for_window( int map_w, int map_h){
-    // NOTE: defunct  -ETJ 22 Mar 2012
-    // scale all extant values so that min and max fall within a region
-    // of about map_h/(lat_samples-1)
-    
-    // Scale extant values so they're as large as possible while 
-    // A) Fitting in the (map_w, map_h) window they've been given, and
-    // B) Maintaining at least MIN_INTER_SLICE_DISTANCE units between each slice
-    
-    // The data array we're working with is likely so small ( < 2000 samples)
-    // that it's not worth clumping each of these actions together at once.
-    // Unless, well, you want to.  Then go for it...
-    int x,y;
-    int src_range = 0, dest_range= 0;
-
-    // Move through array, calculating min & max values 
-    short min = 10000, max= -10000;
-    for(y = 0; y < lat_samples * lng_samples; y += 1 ){
-        if ( buf[y] < min){ min = buf[y];}
-        if ( buf[y] > max){ max = buf[y];}
-    }
-    
-    
-    src_range = max - min;
-    dest_range = map_h / lat_samples; // This means every section is self-contained.  
-    // That's not really what we need, since we can go above the next section if the next
-    // section is also going up.  So leaving dest_range at only map_h/lat_samples is overly conservative.
-    
-    
-    // Subtract min from all values so 0 is the baseline. Otherwise, patterns
-    // on the Tibetan plateau might all go off the top of the page
-    for(y = 0; y < lat_samples * lng_samples; y += 1 ){
-        buf[y] -= min;
-    }    
-    
-    // Calculate minimal distance between the same point in two adjacent slices
-    short min_inter_slice_distance = 10000;
-    short dif = 0;
-    for( y = 0; y < lat_samples - 1; y += 1 ){
-        for( x = 0; x < lng_samples; x += 1 ){
-            dif = buf[lng_samples*y + x] - buf[lng_samples*(y+1) + x] ;
-            if ( dif < min_inter_slice_distance){ min_inter_slice_distance = dif;}
-        }
-    }
-    
-    /* ETJ DEBUG
-    printf( "****** Before scale: **************\n");
-    
-    for( y = 0; y < lat_samples; y += 1 ){
-        for( x = 0; x < lng_samples; x += 1 ){
-            printf( "%-4d ", buf[lng_samples*y + x]);
-        }
-        printf("\n");
-    }
-    printf("\n");
-    printf("\n");
-    // END DEBUG */
-    
-    // TODO: scale correctly so that we send the maximum permissible range.
-    
-    // Scale all values so that min_inter_slice_distance maps to MIN_INTER_SLICE_DISTANCE
-    min_inter_slice_distance *= (min_inter_slice_distance < 0 ? 1 : -1);
-    // float scale = (float)(MIN_INTER_SLICE_DISTANCE)/min_inter_slice_distance;
-    float scale = (float)dest_range/src_range;
-    for(y = 0; y < lat_samples * lng_samples; y += 1 ){
-        buf[y] = (short)(buf[y] * scale);
-    }   
-    
-    /* ETJ DEBUG
-    printf( "****** After scale: **************\n");
-    for( y = 0; y < lat_samples; y += 1 ){
-        for( x = 0; x < lng_samples; x += 1 ){
-            printf( "%-4d ", buf[lng_samples*y + x]);
-        }
-        printf("\n");
-    }
-    printf("\n");
-    printf("\n");
-    // END DEBUG */
-     
-    
 }
 
 // ===========
@@ -407,6 +298,12 @@ void swap( int *a, int *b){
     tmp = *a;
     *a = *b;
     *b = tmp;
+}
+void swap( float *a, float *b){
+    float tmp;
+    tmp = *a;
+    *a = *b;
+    *b = tmp;   
 }
 void myReplace(std::string& str, const std::string& oldStr, const std::string& newStr){
     size_t pos = 0;
@@ -497,8 +394,8 @@ int main (int argc, char const *argv[]) {
     }
 
     // parse values from a string like this:
-    // <DEBUG> export QUERY_STRING="lat=0.62&lng=16.47&lat_span=0.15&lng_span=0.15&lat_samples=10&lng_samples=30&map_w=266&map_h=266&cardinal=0&dem_file_dir=%2FUsers%2Fjonese%2FSites%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F"
-    // <REMOTE>export QUERY_STRING="lat=0.62&lng=16.47&lat_span=0.15&lng_span=0.15&lat_samples=10&lng_samples=30&map_w=266&map_h=266&cardinal=0&dem_file_dir=%2Fhome%2Fetjones%2Fwebapps%2Fhtdocs%2FDEM2CUT%2Fdems%2FSRTM_90m_global%2F"
+    // <DEBUG> :
+    // export QUERY_STRING="lat=35.36&lng=138.73&lat_span=0.15&lng_span=0.15&lat_samples=10&lng_samples=30&map_w=266&map_h=266&cardinal=0&dem_file_dir=..%2F..%2Fdems%2FSRTM_90m_global%2F"
     sscanf( query_string, "lat=%f&lng=%f&lat_span=%f&lng_span=%f&"\
            "lat_samples=%d&lng_samples=%d&map_w=%d&map_h=%d&cardinal=%d&dem_file_dir=%s",\
            &lat, &lng, &lat_span, &lng_span, 
@@ -527,9 +424,7 @@ int main (int argc, char const *argv[]) {
 
     
     // The actual magic
-    LatLng min_ll( lat-lat_span/2.0, lng-lng_span/2.0);
-    LatLng max_ll( lat+lat_span/2.0, lng+lng_span/2.0);
-    LatLngRegion llr( min_ll, max_ll);
+    LatLngRegion llr( lat-lat_span/2.0, lng-lng_span/2.0, lat+lat_span/2.0, lng+lng_span/2.0);
     DemRegion reg( llr, lat_samples, lng_samples, cardinal);
     // reg.scale_for_window( map_w, map_h);
     reg.print_samples_json_float();

@@ -147,8 +147,12 @@ getDemData = ->
     }
     # ETJ DEBUG
     # console.log( "Sending input:")
+    # query_string = 'export QUERY_STRING=\"'
     # for p, v of input
     #     console.log("#{p} : #{v}")
+    #     query_string += "#{p}=#{v}&"
+    # query_string = query_string.replace /&$/, '"'
+    # console.log(query_string)
     # END DEBUG
             
     success_ = (result,status,xhr) ->

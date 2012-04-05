@@ -1,0 +1,209 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D7E0218C152E2B670045ABCE /* dem_extractor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D7E0218A152E2B670045ABCE /* dem_extractor.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D7E0217B152E2B550045ABCE /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		D7E0217D152E2B550045ABCE /* dem_extractor */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = dem_extractor; sourceTree = BUILT_PRODUCTS_DIR; };
+		D7E0218A152E2B670045ABCE /* dem_extractor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dem_extractor.cpp; path = ../../dem_extractor.cpp; sourceTree = "<group>"; };
+		D7E0218B152E2B670045ABCE /* dem_extractor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dem_extractor.h; path = ../../dem_extractor.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D7E0217A152E2B550045ABCE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D7E02172152E2B550045ABCE = {
+			isa = PBXGroup;
+			children = (
+				D7E02180152E2B550045ABCE /* dem_extractor */,
+				D7E0217E152E2B550045ABCE /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D7E0217E152E2B550045ABCE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D7E0217D152E2B550045ABCE /* dem_extractor */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D7E02180152E2B550045ABCE /* dem_extractor */ = {
+			isa = PBXGroup;
+			children = (
+				D7E0218A152E2B670045ABCE /* dem_extractor.cpp */,
+				D7E0218B152E2B670045ABCE /* dem_extractor.h */,
+			);
+			path = dem_extractor;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D7E0217C152E2B550045ABCE /* dem_extractor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D7E02187152E2B550045ABCE /* Build configuration list for PBXNativeTarget "dem_extractor" */;
+			buildPhases = (
+				D7E02179152E2B550045ABCE /* Sources */,
+				D7E0217A152E2B550045ABCE /* Frameworks */,
+				D7E0217B152E2B550045ABCE /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = dem_extractor;
+			productName = dem_extractor;
+			productReference = D7E0217D152E2B550045ABCE /* dem_extractor */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D7E02174152E2B550045ABCE /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0420;
+			};
+			buildConfigurationList = D7E02177152E2B550045ABCE /* Build configuration list for PBXProject "dem_extractor" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = D7E02172152E2B550045ABCE;
+			productRefGroup = D7E0217E152E2B550045ABCE /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D7E0217C152E2B550045ABCE /* dem_extractor */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D7E02179152E2B550045ABCE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D7E0218C152E2B670045ABCE /* dem_extractor.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		D7E02185152E2B550045ABCE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		D7E02186152E2B550045ABCE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		D7E02188152E2B550045ABCE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		D7E02189152E2B550045ABCE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D7E02177152E2B550045ABCE /* Build configuration list for PBXProject "dem_extractor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D7E02185152E2B550045ABCE /* Debug */,
+				D7E02186152E2B550045ABCE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D7E02187152E2B550045ABCE /* Build configuration list for PBXNativeTarget "dem_extractor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D7E02188152E2B550045ABCE /* Debug */,
+				D7E02189152E2B550045ABCE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D7E02174152E2B550045ABCE /* Project object */;
+}
