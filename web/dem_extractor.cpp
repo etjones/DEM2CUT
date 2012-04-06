@@ -235,6 +235,7 @@ void DemRegion::print_samples_json_float(){
     
     float val;
     float range = max - min;
+    if (range == 0){ range = 1;}
 
     printf("[ \n");
     for( y = 0; y < lat_samples; y += 1 ){
