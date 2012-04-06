@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D7E0218C152E2B670045ABCE /* dem_extractor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D7E0218A152E2B670045ABCE /* dem_extractor.cpp */; };
+		D7002B6A152F72DF00648519 /* dem_extractor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D7002B68152F72DF00648519 /* dem_extractor.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -23,9 +23,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D7002B68152F72DF00648519 /* dem_extractor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dem_extractor.cpp; path = ../dem_extractor.cpp; sourceTree = "<group>"; };
+		D7002B69152F72DF00648519 /* dem_extractor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dem_extractor.h; path = ../dem_extractor.h; sourceTree = "<group>"; };
 		D7E0217D152E2B550045ABCE /* dem_extractor */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = dem_extractor; sourceTree = BUILT_PRODUCTS_DIR; };
-		D7E0218A152E2B670045ABCE /* dem_extractor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dem_extractor.cpp; path = ../../dem_extractor.cpp; sourceTree = "<group>"; };
-		D7E0218B152E2B670045ABCE /* dem_extractor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dem_extractor.h; path = ../../dem_extractor.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,7 +42,8 @@
 		D7E02172152E2B550045ABCE = {
 			isa = PBXGroup;
 			children = (
-				D7E02180152E2B550045ABCE /* dem_extractor */,
+				D7002B68152F72DF00648519 /* dem_extractor.cpp */,
+				D7002B69152F72DF00648519 /* dem_extractor.h */,
 				D7E0217E152E2B550045ABCE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -53,15 +54,6 @@
 				D7E0217D152E2B550045ABCE /* dem_extractor */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		D7E02180152E2B550045ABCE /* dem_extractor */ = {
-			isa = PBXGroup;
-			children = (
-				D7E0218A152E2B670045ABCE /* dem_extractor.cpp */,
-				D7E0218B152E2B670045ABCE /* dem_extractor.h */,
-			);
-			path = dem_extractor;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -114,7 +106,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D7E0218C152E2B670045ABCE /* dem_extractor.cpp in Sources */,
+				D7002B6A152F72DF00648519 /* dem_extractor.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

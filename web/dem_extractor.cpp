@@ -71,7 +71,6 @@ bool LatLngRegion::contains_region( LatLngRegion other_region){
 // =============
 // = DemRegion =
 // = --------- =
-// Constructor: if only given a map region, find data from cached DEM files.
 DemRegion::DemRegion( LatLngRegion region_in, int lat_samples_in, int lng_samples_in, int direction_in):
 region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in), direction( direction_in){
     // DemRegion are responsibile for knowing where their data will come from.  
@@ -157,7 +156,8 @@ region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in), 
     
 }
 LatLng *DemRegion::lat_lngs_to_sample(  LatLng *ll_list, LatLngRegion dst_region, 
-                                        int dst_lat_samples, int dst_lng_samples){
+                                        int dst_lat_samples, int dst_lng_samples)
+{
     int x, y;
     
     float dst_min_lat = dst_region.min_lat;
@@ -181,7 +181,8 @@ LatLng *DemRegion::lat_lngs_to_sample(  LatLng *ll_list, LatLngRegion dst_region
     return ll_list;           
 }
 short DemRegion::elev_at_lat_lng( LatLng pt, FILE *tile, LatLngRegion tile_region, 
-                                    int tile_lat_samples, int tile_lng_samples){
+                                    int tile_lat_samples, int tile_lng_samples)
+{
     short a,b,c,d, val;
     // object if we're looking in the wrong file
     if (!tile_region.contains_point( pt) ){
@@ -192,11 +193,11 @@ short DemRegion::elev_at_lat_lng( LatLng pt, FILE *tile, LatLngRegion tile_regio
     // In the files, highest latitude is stored at y-index 0, so invert lat scaling
     float exact_lat_index = scale( pt.lat, tile_region.min_lat, tile_region.max_lat, tile_lat_samples, 0);
     float exact_lng_index = scale( pt.lng, tile_region.min_lng, tile_region.max_lng, 0, tile_lng_samples);
-
+    
     // Make sure we don't read off the edge of the array
     if ( ceil(exact_lat_index) >= tile_lat_samples){ exact_lat_index -= 1;}
     if ( ceil(exact_lng_index) >= tile_lng_samples){ exact_lng_index -= 1;}
-
+    
     // read the four surrounding data points
     int bps = 2;
     int file_addy = (floor( exact_lat_index) * tile_lng_samples + floor( exact_lng_index)) * bps;
@@ -431,7 +432,6 @@ int main (int argc, char const *argv[]) {
     // The actual magic
     LatLngRegion llr( lat-lat_span/2.0, lng-lng_span/2.0, lat+lat_span/2.0, lng+lng_span/2.0);
     DemRegion reg( llr, lat_samples, lng_samples, cardinal);
-    // reg.scale_for_window( map_w, map_h);
     reg.print_samples_json_float();
     
     return 0;

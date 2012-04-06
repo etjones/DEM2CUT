@@ -1,20 +1,20 @@
 TODO:
--- add fold/ frame lines to drawn canvas
--- color cut/fold lines differentially
 -- manage image scaling for larger areas
 -- dem_extractor should return an optimal scale factor so that no line hits another, and this should be applied in the drawing
 -- fix updating so:
     a) cut pattern updates with map dragging
     b) direction & slice number controls update cut immediately
 -- make cut frame 
--- add adequate space at top of frame so contours aren't cut off the top
--- all lat_long regions are currently warped into squares.  Better would
-    be to take into account the aspect ratio of the region being graphed.
 -- open & read DEM data
 -- TESTING.
 
 
 Destination:
+xx add adequate space at top of frame so contours aren't cut off the top
+xx color cut/fold lines differentially
+xx add fold/ frame lines to drawn canvas
+xx all lat_long regions are currently warped into squares.  Better would
+    be to take into account the aspect ratio of the region being graphed.
 xx be able to sample from multiple map tiles
 xx West & east orientations don't work yet.
 xx finish dem_extractor.cpp

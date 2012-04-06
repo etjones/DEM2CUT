@@ -17,11 +17,15 @@ outlineCanvas = ->
     
     window.last_cgi_time = 0
     window.min_cgi_gap = 200
-    # reSlice()
+    
+    # Paper-cutting globals.  Should probably be stored in another object
+    window.valley_color     = "#007299"
+    window.mountain_color   = "#30c05a"
+    window.cut_color        = "#7f3f00"
 
 showLatLng = ->
     # Show latw/lng on slice side:
-    # Note: When run on page load, ll hasn't been generated yet. 
+    # FIXME: When run on page load, ll hasn't been generated yet. 
     # How to wait until it's available?
     ll = window.map.getBounds()
     # alert "map bounds not found" unless ll?
@@ -34,12 +38,17 @@ showLatLng = ->
     $("#lat_lng")[0].innerHTML= out_s
 
 saveAsPNG = ->
-    # FIXME: Better to open a new tab with this.         
-    window.location = window.canvas.toDataURL("image/png");  
+    window.open( window.canvas.toDataURL("image/png"))
 
 showValue = (newValue, id)  -> 
     document.getElementById( id).innerHTML=newValue
 
+updateSlices = ->
+    $("#slices")[0].innerHTML = slices()
+    reSlice()
+
+slices = -> parseInt($("#slice_count")[0].value, 10)
+scale = -> parseFloat( $("#scale")[0].value)
 cardinal_direction = -> 
     switch $("#cardinal_direction")[0].value
         when "North" then 0
@@ -47,11 +56,6 @@ cardinal_direction = ->
         when "East"  then 2
         when "West"  then 3
 
-updateSlices = ->
-    $("#slices")[0].innerHTML = slices()
-    reSlice()
-
-slices = -> parseInt($("#slice_count")[0].value, 10)
 reSlice = ->
     showLatLng()
     
@@ -77,29 +81,88 @@ drawPaths = ->
     
     # Blank the whole context first
     ctx.fillStyle="white"
-    ctx.fillRect( 0,0, w, h)
-    ctx.fillStyle = "black"
+    ctx.fillRect( 0,0, window.canvas.width, window.canvas.height)
+    
+    # figure the area we'll be drawing sections into
+    # and adjust for aspect ratio of map
+    span = window.map.getBounds().toSpan()    
+    aspect_ratio = span.lat()/ span.lng()
+    if aspect_ratio <= 1
+        section_w = window.canvas.width - 60
+        section_h = aspect_ratio * section_w
+    else
+        section_h = window.canvas.height - 60
+        section_w = section_h/aspect_ratio
+    
+    # transform to section origin to draw sections
+    section_origin_x = (w-section_w)/2
+    section_origin_y = (h-section_h)/2 + 20
+    ctx.translate( section_origin_x, section_origin_y)
+    
+    w = section_w
+    h = section_h
     
     # scale to fit in a w, h box
     scale_x = w/arr2d[0].length
-    scale_y = parseFloat( $("#scale")[0].value)
-    trans_y = (h)/(arr2d.length + 1)
+    scale_y = scale()
+    per_section_h = (h)/(arr2d.length + 1)
     ctx.lineWidth = 1
+    
+    # draw each section
     for row, y in arr2d
+        vert_trans = per_section_h*(y + 0.5)
         # vertical transform
-        ctx.translate( 0, trans_y*(y + 0.5))
-        ctx.lineWidth = 1
+        ctx.translate( 0, vert_trans)
+        
+        # draw the fold lines
+        fold_notches( ctx, section_w, per_section_h)
+                
+        # draw the cross-section
         ctx.beginPath()
+        ctx.strokeStyle = window.cut_color 
+        ctx.moveTo( 0, 0)
         for elt, x in row
             ctx.lineTo( scale_x * x, -scale_y * elt)
+        ctx.lineTo( w, 0)
+        ctx.fill()
         ctx.stroke()
+        
         # undo vertical transform.  
-        ctx.translate( 0, -trans_y*(y + 0.5))
+        ctx.translate( 0, -vert_trans)
+    
+    # undo transform to section origin
+    ctx.translate( -section_origin_x, -section_origin_y)
     
     # ETJ DEBUG
     # console.log( arr2d.concat())
     # log2DArray( arr2d)
     # END DEBUG
+
+fold_notches = ( ctx, section_w, per_section_h) ->
+    
+    notch_w = 15
+    notch_h = per_section_h - 5
+    
+    ctx.lineWidth = 1
+    
+    ctx.beginPath()
+    ctx.moveTo( 0,0)
+    ctx.strokeStyle = window.cut_color
+    ctx.lineTo( -notch_w, notch_h)
+    ctx.stroke()
+    
+    # horizontal fold line
+    ctx.beginPath()
+    ctx.strokeStyle = window.valley_color
+    ctx.moveTo( -notch_w, notch_h)    
+    ctx.lineTo( section_w+notch_w, notch_h)
+    ctx.stroke()
+    
+    ctx.beginPath()
+    ctx.strokeStyle = window.cut_color
+    ctx.moveTo( section_w+notch_w, notch_h)
+    ctx.lineTo( section_w, 0)
+    ctx.stroke()
 
 log2DArray = (arr2d) ->
     console.log( "**** 2d Arr ****")
@@ -132,6 +195,10 @@ getDemData = ->
         lat_span =  span.lat()
         lng_span =  span.lng()
     
+    # NOTE: sending window.canvas.[height|width] isn't really 
+    # correct, since we'll be drawing into a smaller area than the
+    # canvas itself.  But since those values aren't actually used 
+    # by the cgi program, shouldn't be a problem. -ETJ 06 Apr 2012
     # TODO: lng_samples should be defined on a more global level
     input = { 
         lat: lat
@@ -145,7 +212,7 @@ getDemData = ->
         cardinal: cardinal_direction()
         dem_file_dir: "../../dems/SRTM_90m_global/"
     }
-    # ETJ DEBUG
+    # # ETJ DEBUG
     # console.log( "Sending input:")
     # query_string = 'export QUERY_STRING=\"'
     # for p, v of input
@@ -153,7 +220,7 @@ getDemData = ->
     #     query_string += "#{p}=#{v}&"
     # query_string = query_string.replace /&$/, '"'
     # console.log(query_string)
-    # END DEBUG
+    # # END DEBUG
             
     success_ = (result,status,xhr) ->
         window.slice_arr = result;
@@ -183,7 +250,6 @@ $(document).ready ->
   # show the updated data from the asynchronous CGI call. -ETJ 23 Mar 2012
   $("#saveToPng").live( 'click', saveAsPNG)
   $("#scale"    ).live( 'change', drawPaths) 
-  $('#useLoc'   ).live( 'click', reSlice)
   $("#reSlice"  ).live( 'click', reSlice) 
   $("#cardinal_direction").live( 'change', reSlice)
   $("#slice_count").live( 'change', updateSlices)

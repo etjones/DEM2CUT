@@ -6,7 +6,18 @@
         <meta http-equiv="Content-Type" content="text/html"; charset="utf-8">   
         <style type="text/css">
             html { height: 100% }
-            body { height: 100%; margin: 0; padding: 0 }
+            body {
+                /* from http://daringfireball.net   Mocking welcome, John */
+                height: 100%; margin: 0;                
+                margin-top: 0;
+            	padding: 0;
+            	font-family: Verdana, "Bitstream Vera Sans", sans-serif;
+            	line-height: 1.8em;
+            	color: #fff;
+            	text-align: left;
+            	min-width: 760px;
+            	background-color: #4a525a; /* dark blue slate thing */
+            }            
             #map_canvas { width: 100%; height: 100% }
             #map_side {width: 45%; height: 80%; float: left;}
             #cut_side {width: 45%; height: 80%; float: right}
@@ -21,10 +32,10 @@
 
         <div id="map_side" >
             <div id="map_canvas"></div>
-            <button type="button" id="useLoc">Make a cut pattern of this location</button>
+            <!-- <button type="button" id="useLoc">Make a cut pattern of this location</button> -->
         </div>
         <div id="cut_side" >
-            <canvas id="cut_canvas" width="266" height="266"></canvas>            
+            <canvas id="cut_canvas" width="300" height="300"></canvas>            
             <div id="slice_controls">
                 Location: <br>  <span id="lat_lng">(?, ?)</span><br>
                 <form action="submit_slice">
