@@ -3,9 +3,11 @@
 #include <math.h>
 #include <stdarg.h>
 #include <string>
+#include <map>
+using namespace std;
 
 #include "dem_extractor.h"
-std::string gDemFileDir;
+string gDemFileDir;
 
 #define MAX_ELEVATION 8700
 #define MIN_ELEVATION -200
@@ -23,7 +25,7 @@ LatLng::LatLng( float lat_in, float lng_in): lat(lat_in), lng(lng_in){
     if ( lat < -90){ lat = -90.0;}
     if ( lat > 90) { lat = 90.0;}
 }
-std::string LatLng::srtm_hgt_filename(){
+string LatLng::srtm_hgt_filename(){
     int lati = floor( lat);
     int lngi = floor( lng);
     
@@ -32,7 +34,7 @@ std::string LatLng::srtm_hgt_filename(){
             (lati < 0 ? 'S':'N'), abs(lati),
             (lngi < 0 ? 'W':'E'), abs(lngi));
     
-    std::string buffAsStdStr = buff;
+    string buffAsStdStr = buff;
     return buffAsStdStr;
 }
 LatLngRegion LatLng::enclosing_srtm_region(){
@@ -100,29 +102,28 @@ region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in), 
     int min_lng = floor(region.min_lng);
     int lat_degree_span = ceil( region.max_lat) - floor( region.min_lat);
     int lng_degree_span = ceil( region.max_lng) - floor( region.min_lng);
-    FILE **all_tiles = (FILE **)malloc( lat_degree_span * lng_degree_span * sizeof(FILE *));
-    FILE *tile;
-    std::string filename;
+    string filename;
+    FILE *tile;    
+    map<string, FILE *>all_tiles;
         
     // tiles are in dictionary order (decreasing latitude, increasing longiude)    
     // A B
     // C D        
     for( y = 0; y < lat_degree_span; y += 1 ){
         for( x = 0; x < lng_degree_span; x += 1 ){
-            filename = gDemFileDir + LatLng( (lat_degree_span -1 - y) + min_lat, x + min_lng).srtm_hgt_filename();
+            filename = LatLng( y + min_lat, x + min_lng).srtm_hgt_filename();
             // NOTE: if we don't have a file (oceans, polar regions), just store
             // a null pointer.  All file reads use fread_valid_data(), which 
             // returns 0 for null file pointers.  This is a hack, but it's expedient. -ETJ 05 Apr 2012
-            tile = fopen( filename.c_str(), "r");
-            all_tiles[y*lng_degree_span + x] = tile;
+            tile = fopen( (gDemFileDir +filename).c_str(), "r");
+            all_tiles[ filename] = tile;
         }
     }
     
     // Get elevations for all points in ll_list, and store them in buf
-    tile = all_tiles[0];
-    LatLngRegion cur_region = ll_list[0].enclosing_srtm_region();
-    LatLng ll;
-    int tile_index;
+    LatLng ll = ll_list[0];
+    tile = all_tiles[ll.srtm_hgt_filename()];
+    LatLngRegion cur_region = ll.enclosing_srtm_region();
     short val;
     
     for( y = 0; y < lat_samples; y += 1 ){
@@ -131,8 +132,7 @@ region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in), 
             // Look in correct map tile
             if ( !cur_region.contains_point( ll)){
                 cur_region = ll.enclosing_srtm_region();
-                tile_index = lng_degree_span * ((int)(ll.lat-min_lat)) + (int)(ll.lng - min_lng);
-                tile = all_tiles[ tile_index];
+                tile = all_tiles[ ll.srtm_hgt_filename()];
             }
             val = elev_at_lat_lng( ll, tile, cur_region, 1201, 1201);
             buf[y*lng_samples + x] = val;            
@@ -142,16 +142,17 @@ region( region_in), lat_samples( lat_samples_in), lng_samples( lng_samples_in), 
     // Rotate buffers as appropriate, so they face the right direction
     rotate_buffer( buf, lng_samples, lat_samples, direction);
 
-     // If we're facing east/west swap lat_samples, lng_samples back to how they were originally
+    // If we're facing east/west swap lat_samples, lng_samples 
+    // back to how they were originally
     if (direction == EAST || direction == WEST){
         swap( &lat_samples, &lng_samples);
     }   
     
     // close all open files    
-    for( y = 0; y < lat_degree_span * lng_degree_span; y += 1 ){
-        if ( all_tiles[y]){ fclose( all_tiles[y]);}
+    for( map<string, FILE *>::iterator ii=all_tiles.begin(); ii != all_tiles.end(); ++ii){
+        fclose( (*ii).second);
     }
-    free( all_tiles);
+
     free( ll_list);
     
 }
@@ -309,9 +310,9 @@ void swap( int *a, int *b){
     *a = *b;
     *b = tmp;
 }
-void myReplace(std::string& str, const std::string& oldStr, const std::string& newStr){
+void myReplace(string& str, const string& oldStr, const string& newStr){
     size_t pos = 0;
-    while((pos = str.find(oldStr, pos)) != std::string::npos)
+    while((pos = str.find(oldStr, pos)) != string::npos)
     {
         str.replace(pos, oldStr.length(), newStr);
         pos += newStr.length();
