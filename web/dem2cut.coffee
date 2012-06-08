@@ -88,7 +88,7 @@ drawPaths = ->
     span = window.map.getBounds().toSpan()    
     aspect_ratio = span.lat()/ span.lng()
     if aspect_ratio <= 1
-        section_w = window.canvas.width - 60
+        section_w = window.canvas.width - 100
         section_h = aspect_ratio * section_w
     else
         section_h = window.canvas.height - 60
@@ -103,7 +103,7 @@ drawPaths = ->
     h = section_h
     
     # scale to fit in a w, h box
-    scale_x = w/arr2d[0].length
+    scale_x = w/(arr2d[0].length - 1)
     scale_y = scale()
     per_section_h = (h)/(arr2d.length + 1)
     ctx.lineWidth = 1
@@ -140,11 +140,13 @@ drawPaths = ->
 
 fold_notches = ( ctx, section_w, per_section_h) ->
     
-    notch_w = 15
+    # notch_w = 15
+    notch_w = 0
     notch_h = per_section_h - 5
     
     ctx.lineWidth = 1
     
+    # left profile side
     ctx.beginPath()
     ctx.moveTo( 0,0)
     ctx.strokeStyle = window.cut_color
@@ -158,11 +160,67 @@ fold_notches = ( ctx, section_w, per_section_h) ->
     ctx.lineTo( section_w+notch_w, notch_h)
     ctx.stroke()
     
+    #right profile side
     ctx.beginPath()
     ctx.strokeStyle = window.cut_color
     ctx.moveTo( section_w+notch_w, notch_h)
     ctx.lineTo( section_w, 0)
     ctx.stroke()
+    
+    # frame valley folds (4)
+    # frame_offset = 10
+    # frame_h = notch_h
+    # 
+    # ctx.strokeStyle = window.valley_color    
+    # valley_start_y = -per_section_h + notch_h
+    # valley_end_y = notch_h
+    # 
+    # ctx.beginPath()
+    # ctx.moveTo( -frame_offset, valley_start_y)
+    # ctx.lineTo( -frame_offset, valley_end_y)
+    # 
+    # ctx.moveTo( -frame_offset - frame_h, valley_start_y)
+    # ctx.lineTo( -frame_offset - frame_h, valley_end_y)
+    # 
+    # ctx.moveTo( section_w + frame_offset, valley_start_y)
+    # ctx.lineTo( section_w + frame_offset, valley_end_y)
+    # 
+    # ctx.moveTo( section_w + frame_offset + frame_h, valley_start_y)
+    # ctx.lineTo( section_w + frame_offset + frame_h, valley_end_y)    
+    #     
+    # ctx.stroke()        
+    
+    # # left frame tab
+    ctx.strokeStyle = window.cut_color    
+    # 
+    notch_rad = 1
+    notch_tab_rad = 2
+    notch_tab_overlap = 5
+    # 
+    # flap_w = notch_tab_overlap + frame_offset
+    # 
+    # left_edge = -frame_offset - notch_h - flap_w
+    fold_y = notch_h
+    # 
+    # notch_center_x = -frame_offset - notch_h -frame_offset
+    
+    ctx.beginPath()
+    # ctx.moveTo( left_edge, fold_y - per_section_h/2)
+    # ctx.lineTo( left_edge, fold_y - notch_rad - notch_tab_rad)
+    # 
+    # ctx.arc( left_edge + notch_tab_rad, fold_y - notch_tab_rad - notch_rad, notch_tab_rad,
+    #             0.5*Math.PI, Math.PI)
+    #             
+    # ctx.lineTo(    notch_center_x, fold_y - notch_rad)
+    # ctx.arc( notch_center_x, fold_y, notch_rad, 1.5*Math.PI, 0.5*Math.PI)
+    # ctx.lineTo( left_edge + notch_tab_rad, fold_y + notch_rad)
+    # ctx.arc( left_edge + notch_tab_rad, fold_y + notch_rad + notch_tab_rad, Math.PI, 1.5*Math.PI)
+    # ctx.lineTo( left_edge, fold_y + per_section_h/2)
+    # 
+    ctx.stroke()    
+    
+    # right frame tab 
+    # right_edge = section_w - left_edge # assumes left_edge < 0
 
 log2DArray = (arr2d) ->
     console.log( "**** 2d Arr ****")
