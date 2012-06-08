@@ -4,7 +4,12 @@ TODO:
 -- fix updating so:
     a) cut pattern updates with map dragging
     b) direction & slice number controls update cut immediately
--- make cut frame 
+-- add cut frame to outlines
+-- output to SVG, not just PNG
+-- get signal when map is loaded, so cut pattern appears on load
+-- dropdown menus (direction) doesn't change cut pattern immediately; waits on next action
+-- need search field for google map location
+-- slices slider is usually a couple iterations behind with the results it displays
 -- open & read DEM data
 -- TESTING.
 
@@ -29,6 +34,8 @@ xx google maps interface for choosing regions
 xx use cached DEM data so we don't have to download more.
 
 BUGS:
+-- aspect ratio calculations wrong: taller map yield almost square cut. 
+    Short map yields very short cut
 xx Coffeescript vertical scaling scales the lines we draw as well 
 as their positions.  Really, we just want to scale the positions 
 and have all the lines be the same thickness.  (alternately, set
