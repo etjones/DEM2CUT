@@ -35,6 +35,7 @@ outlineCanvas = ->
         cut_offset: 6
         frame_h:    12
         edge_inset : 5
+        section_ramp_w : 10
     }
     wf = window.frame_params
     wf.notch_flat = wf.notch_d - wf.notch_rad - wf.notch_h/2.0
@@ -98,17 +99,20 @@ drawPaths = ->
     # Blank the whole context first
     ctx.fillStyle="white"
     ctx.fillRect( 0,0, window.canvas.width, window.canvas.height)
+        
+    p = window.frame_params
     
     # figure the area we'll be drawing sections into
     # and adjust for aspect ratio of map
     span = window.map.getBounds().toSpan()    
     aspect_ratio = span.lat()/ span.lng()
     if aspect_ratio <= 1
-        section_w = window.canvas.width - 2*( p.notch_d + 2*p.cut_offset + p.frame_h + edge_inset) 
+        section_w = window.canvas.width - 2*( p.notch_d + 2*p.cut_offset + p.frame_h + p.edge_inset + p.section_ramp_w) 
         section_h = aspect_ratio * section_w
     else
+        # FIXME: this doesn't take all the frame calculations into account
         section_h = window.canvas.height - 60
-        section_w = section_h/aspect_ratio
+        section_w = section_h/aspect_ratio - 100
     
     window.frame_params.section_h = section_h    
     window.frame_params.section_w = section_w    
@@ -130,6 +134,7 @@ drawPaths = ->
     scale_y = scale()
     per_section_h = (h)/(arr2d.length + 1)
     
+    p = window.frame_params
     window.frame_params.per_section_h = per_section_h
     
     ctx.lineWidth = 1
@@ -137,13 +142,16 @@ drawPaths = ->
     # draw each section
     for row, y in arr2d
         vert_trans = per_section_h*(y + 0.5)
-        single_notch( ctx, window.frame_params, -section_origin_x + window.frame_params.edge_inset, vert_trans, true)
-        single_notch( ctx, window.frame_params, -section_origin_x + window.frame_params.edge_inset, vert_trans, false)
+        # FIXME: slots are in line with the origin of each section, not its fold line
+        notch_trans_x = -(p.edge_inset + p.notch_d +  p.cut_offset + p.frame_h + p.section_ramp_w)
+        notch_trans_y = vert_trans 
+        single_notch( ctx, window.frame_params, notch_trans_x, vert_trans, true)
+        single_notch( ctx, window.frame_params, notch_trans_x, vert_trans, false)
         # vertical transform
         ctx.translate( 0, vert_trans)
         
         # draw the fold lines
-        # fold_notches( ctx, section_w, per_section_h)
+        fold_notches( ctx, section_w, per_section_h)
                 
         # draw the cross-section
         ctx.beginPath()
@@ -160,6 +168,8 @@ drawPaths = ->
             
     # undo transform to section origin
     ctx.translate( -section_origin_x, -section_origin_y)
+    
+    #FIXME: needs to take aspect_ratio logic into account
     notch_border_cuts( ctx, window.frame_params, section_origin_y)
 
 notch_border_cuts = (ctx, params, y_margins) ->
@@ -188,11 +198,13 @@ frame_folds = ( ctx, section_w, total_h) ->
     ctx.lineWidth = 1
     ctx.strokeStyle = window.valley_color
     wf = window.frame_params
-    fold_inset = wf.edge_inset + wf.notch_d + wf.cut_offset
+    
+    section_start = (window.canvas.width - wf.section_w)/2
+    fold_inset = section_start - wf.section_ramp_w - wf.cut_offset
     x_locs = [  fold_inset, 
-                fold_inset + wf.frame_h,
+                fold_inset - wf.frame_h,
                 window.canvas.width - fold_inset,
-                window.canvas.width - fold_inset - wf.frame_h]
+                window.canvas.width - fold_inset + wf.frame_h]
     for x in x_locs
         ctx.moveTo( x, 0)
         ctx.lineTo( x, total_h)
@@ -232,8 +244,8 @@ single_notch = ( ctx, params, origin_x, origin_y, notch_left =true) ->
     ctx.stroke()
 
 fold_notches = ( ctx, section_w, per_section_h) ->
-    notch_w = 15
-    # notch_w = 0
+    notch_w = window.frame_params.section_ramp_w
+    # FIXME: should be specified in frame_params
     notch_h = per_section_h - 5
     
     ctx.lineWidth = 1
@@ -258,16 +270,6 @@ fold_notches = ( ctx, section_w, per_section_h) ->
     ctx.moveTo( section_w+notch_w, notch_h)
     ctx.lineTo( section_w, 0)
     ctx.stroke()
-    
-    # frame valley folds (4)
-    frame_offset = notch_w + 5
-    frame_h = notch_h
-    
-    # for i in [0...window.slices]
-    #     single_notch( ctx, window.frame_params, 0, notch_h*( i+ 0.5), true)
-    
-    # right frame tab 
-    # right_edge = section_w - left_edge # assumes left_edge < 0
 
 log2DArray = (arr2d) ->
     console.log( "**** 2d Arr ****")
