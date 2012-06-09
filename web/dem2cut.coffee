@@ -22,6 +22,22 @@ outlineCanvas = ->
     window.valley_color     = "#007299"
     window.mountain_color   = "#30c05a"
     window.cut_color        = "#7f3f00"
+    
+    # global values that determine the shape of the 
+    # frame cutout
+    window.frame_params = {
+        section_w:  0
+        section_h:  0
+        per_section_h: 0
+        notch_d:    20
+        notch_h:    2
+        notch_rad:  5
+        cut_offset: 6
+        frame_h:    12
+        edge_inset : 5
+    }
+    wf = window.frame_params
+    wf.notch_flat = wf.notch_d - wf.notch_rad - wf.notch_h/2.0
 
 showLatLng = ->
     # Show latw/lng on slice side:
@@ -88,11 +104,18 @@ drawPaths = ->
     span = window.map.getBounds().toSpan()    
     aspect_ratio = span.lat()/ span.lng()
     if aspect_ratio <= 1
-        section_w = window.canvas.width - 100
+        section_w = window.canvas.width - 2*( p.notch_d + 2*p.cut_offset + p.frame_h + edge_inset) 
         section_h = aspect_ratio * section_w
     else
         section_h = window.canvas.height - 60
         section_w = section_h/aspect_ratio
+    
+    window.frame_params.section_h = section_h    
+    window.frame_params.section_w = section_w    
+  
+    # Draw the folds of the frame.  This has to be done 
+    # before any transforms are active
+    frame_folds( ctx, section_h, window.canvas.height)
     
     # transform to section origin to draw sections
     section_origin_x = (w-section_w)/2
@@ -106,16 +129,21 @@ drawPaths = ->
     scale_x = w/(arr2d[0].length - 1)
     scale_y = scale()
     per_section_h = (h)/(arr2d.length + 1)
+    
+    window.frame_params.per_section_h = per_section_h
+    
     ctx.lineWidth = 1
     
     # draw each section
     for row, y in arr2d
         vert_trans = per_section_h*(y + 0.5)
+        single_notch( ctx, window.frame_params, -section_origin_x + window.frame_params.edge_inset, vert_trans, true)
+        single_notch( ctx, window.frame_params, -section_origin_x + window.frame_params.edge_inset, vert_trans, false)
         # vertical transform
         ctx.translate( 0, vert_trans)
         
         # draw the fold lines
-        fold_notches( ctx, section_w, per_section_h)
+        # fold_notches( ctx, section_w, per_section_h)
                 
         # draw the cross-section
         ctx.beginPath()
@@ -129,19 +157,83 @@ drawPaths = ->
         
         # undo vertical transform.  
         ctx.translate( 0, -vert_trans)
-    
+            
     # undo transform to section origin
     ctx.translate( -section_origin_x, -section_origin_y)
+    notch_border_cuts( ctx, window.frame_params, section_origin_y)
+
+notch_border_cuts = (ctx, params, y_margins) ->
+    p = params
+    # cut lines to top and bottom of notches
+    ctx.beginPath()
+    ctx.strokeStyle = window.cut_color
+    # UL
+    ctx.moveTo( p.edge_inset, 0)
+    ctx.lineTo( p.edge_inset, y_margins)   
+    # LL
+    ctx.moveTo( p.edge_inset, window.canvas.height)
+    ctx.lineTo( p.edge_inset, window.canvas.height - y_margins)      
+    # UR
+    ctx.moveTo( window.canvas.width - p.edge_inset, 0)
+    ctx.lineTo( window.canvas.width - p.edge_inset, y_margins)   
+    # LR
+    ctx.moveTo( window.canvas.width - p.edge_inset, window.canvas.height)
+    ctx.lineTo( window.canvas.width - p.edge_inset, window.canvas.height - y_margins)      
     
-    # ETJ DEBUG
-    # console.log( arr2d.concat())
-    # log2DArray( arr2d)
-    # END DEBUG
+    ctx.stroke()
+
+frame_folds = ( ctx, section_w, total_h) ->
+    # assumes there's no active transform right now
+    ctx.beginPath
+    ctx.lineWidth = 1
+    ctx.strokeStyle = window.valley_color
+    wf = window.frame_params
+    fold_inset = wf.edge_inset + wf.notch_d + wf.cut_offset
+    x_locs = [  fold_inset, 
+                fold_inset + wf.frame_h,
+                window.canvas.width - fold_inset,
+                window.canvas.width - fold_inset - wf.frame_h]
+    for x in x_locs
+        ctx.moveTo( x, 0)
+        ctx.lineTo( x, total_h)
+    ctx.stroke()
+
+single_notch = ( ctx, params, origin_x, origin_y, notch_left =true) ->
+    p = params
+    
+    ctx.beginPath()
+    ctx.strokeStyle = window.cut_color
+    ctx.translate( origin_x, origin_y)
+    
+    #   reflection
+    #   cos( 2*theta)   sin(2*theta)
+    #   sin( 2*theta)   -cos(2*theta)
+    
+    # vertical mirror
+    if not notch_left
+        reflection_translation = window.canvas.width - 2*p.edge_inset
+        ctx.transform(-1, 0, 0, 1,  reflection_translation, 0)
+    
+    ctx.moveTo( 0, -p.per_section_h/2.0)
+    ctx.lineTo( 0, -p.notch_h/2.0 - p.notch_rad)
+    ctx.arcTo( 0,-p.notch_h/2.0, p.notch_rad, -p.notch_h/2, p.notch_rad)
+    ctx.lineTo( p.notch_d - p.notch_h/2, -p.notch_h/2)
+    ctx.arc( p.notch_d - p.notch_h/2, 0, p.notch_h/2, 1.5*Math.PI, 0.5*Math.PI, false)
+    ctx.lineTo( p.notch_rad, p.notch_h/2)
+    ctx.arcTo( 0, p.notch_h/2.0, 0, p.per_section_h/2.0, p.notch_rad)
+    ctx.lineTo( 0, p.per_section_h/2)
+    # invert vertical mirror
+    if not notch_left
+        ctx.transform(-1, 0, 0, 1, reflection_translation, 0) 
+    
+    # invert transform
+    ctx.translate( -origin_x, -origin_y)
+    
+    ctx.stroke()
 
 fold_notches = ( ctx, section_w, per_section_h) ->
-    
-    # notch_w = 15
-    notch_w = 0
+    notch_w = 15
+    # notch_w = 0
     notch_h = per_section_h - 5
     
     ctx.lineWidth = 1
@@ -168,56 +260,11 @@ fold_notches = ( ctx, section_w, per_section_h) ->
     ctx.stroke()
     
     # frame valley folds (4)
-    # frame_offset = 10
-    # frame_h = notch_h
-    # 
-    # ctx.strokeStyle = window.valley_color    
-    # valley_start_y = -per_section_h + notch_h
-    # valley_end_y = notch_h
-    # 
-    # ctx.beginPath()
-    # ctx.moveTo( -frame_offset, valley_start_y)
-    # ctx.lineTo( -frame_offset, valley_end_y)
-    # 
-    # ctx.moveTo( -frame_offset - frame_h, valley_start_y)
-    # ctx.lineTo( -frame_offset - frame_h, valley_end_y)
-    # 
-    # ctx.moveTo( section_w + frame_offset, valley_start_y)
-    # ctx.lineTo( section_w + frame_offset, valley_end_y)
-    # 
-    # ctx.moveTo( section_w + frame_offset + frame_h, valley_start_y)
-    # ctx.lineTo( section_w + frame_offset + frame_h, valley_end_y)    
-    #     
-    # ctx.stroke()        
+    frame_offset = notch_w + 5
+    frame_h = notch_h
     
-    # # left frame tab
-    ctx.strokeStyle = window.cut_color    
-    # 
-    notch_rad = 1
-    notch_tab_rad = 2
-    notch_tab_overlap = 5
-    # 
-    # flap_w = notch_tab_overlap + frame_offset
-    # 
-    # left_edge = -frame_offset - notch_h - flap_w
-    fold_y = notch_h
-    # 
-    # notch_center_x = -frame_offset - notch_h -frame_offset
-    
-    ctx.beginPath()
-    # ctx.moveTo( left_edge, fold_y - per_section_h/2)
-    # ctx.lineTo( left_edge, fold_y - notch_rad - notch_tab_rad)
-    # 
-    # ctx.arc( left_edge + notch_tab_rad, fold_y - notch_tab_rad - notch_rad, notch_tab_rad,
-    #             0.5*Math.PI, Math.PI)
-    #             
-    # ctx.lineTo(    notch_center_x, fold_y - notch_rad)
-    # ctx.arc( notch_center_x, fold_y, notch_rad, 1.5*Math.PI, 0.5*Math.PI)
-    # ctx.lineTo( left_edge + notch_tab_rad, fold_y + notch_rad)
-    # ctx.arc( left_edge + notch_tab_rad, fold_y + notch_rad + notch_tab_rad, Math.PI, 1.5*Math.PI)
-    # ctx.lineTo( left_edge, fold_y + per_section_h/2)
-    # 
-    ctx.stroke()    
+    # for i in [0...window.slices]
+    #     single_notch( ctx, window.frame_params, 0, notch_h*( i+ 0.5), true)
     
     # right frame tab 
     # right_edge = section_w - left_edge # assumes left_edge < 0
