@@ -20,6 +20,9 @@ Further examples can be found [here](http://www.flickr.com/photos/yoshinobu_miya
 
 ## Current Implementations
 
+### HTML 5
+A work-in-progress is included in this repository. Current state of the art can be seen [here](http://etjones.webfactional.com/DEM2CUT/web/dem2cut.html)  
+
 ### Ruby
 A Ruby version is currently working, with some caveats.  
 
@@ -53,8 +56,3 @@ Here's an example command line used to create [this cut pattern](http://etjones.
     cd $PATH_TO/DEM2CUT/ruby
     ruby ./dem2cut.rb -l "http://maps.google.com/?ll=45.369635,-121.698475&spn=0.081885,0.11982&z=13&vpsrc=6" -d "$HOME/Desktop/ASTGTM2_N45W122_dem.pgm" -o "$HOME/Desktop/cli_cut.svg" -f -t "Mt. Hood"
 </pre>
-### HTML 5
-A work-in-progress is included in this repository. Current state of the art can be seen [here](http://etjones.webfactional.com/DEM2CUT/web/dem2cut.html)  
-
-### Processing
-Francesco De Comite has done some very pretty work in Processing to view DEM files. It may be added to this repository at a later date.  
