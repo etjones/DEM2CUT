@@ -1,6 +1,11 @@
 # DEM2CUT
 
-Dem2Cut is a project initiated by Proessor Yoshinobu Miyamoto.  The intent is to automatically create paper cut patterns that make relief models of any point on earth.  An example can be found [here](http://www.flickr.com/photos/yoshinobu_miyamoto/6713516087/in/photostream/ "Mt. Fuji Papercut").
+Dem2Cut is a project initiated by Proessor Yoshinobu Miyamoto.  The intent is to automatically create paper cut patterns that make relief models of any point on earth.  ![Mitani's South Side of Mt. FujiModel ][http://etjones.webfactional.com/DEM2CUT/examples/Mitani_Fuji_South_side_6713516087.jpg]
+
+The Fuji cut pattern:
+![Mt. Fuji Cut Pattern][http://etjones.webfactional.com/DEM2CUT/examples/fuji-model-full-mt-1.jpg]
+
+Further examples can be found [here](http://www.flickr.com/photos/yoshinobu_miyamoto/6713516087/in/photostream/ "Mt. Fuji Papercut").
 
 # Examples 
 (SVG files can be zoomed in the browser)  
